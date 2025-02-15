@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  nextjs-app:
+    container_name: nextjs-container
+    build: .
+    ports:
+      - "${HOST_PORT:-8081}:3000"  # HOST_PORT is configurable, defaulting to 8081
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
