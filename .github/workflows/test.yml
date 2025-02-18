@@ -27,6 +27,11 @@ jobs:
           cache-dependency-path: eis-tracker/package-lock.json
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - run: npm install
+
+      - name: Install dependencies
+        run: |
+          cd eis-tracker
+          npm install
+          
       - run: ./build.sh
       - run: ./test.sh
