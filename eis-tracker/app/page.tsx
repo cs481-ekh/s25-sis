@@ -1,9 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const [studentID, setStudentID] = useState("");
+  
+  useEffect(() => {
+    // Make a fetch request to the API route
+    async function fetchData() {
+      const res = await fetch('/api/db');
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Database Content:', data.users); // Logs the users data to the console
+      } else {
+        console.error('Failed to fetch data');
+      }
+    }
+
+    // Fetch data when the component mounts
+    fetchData();
+  }, []);
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 bg-gray-100">
