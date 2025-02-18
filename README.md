@@ -9,3 +9,6 @@ Run the following commands:
 Then access:  
   `http://localhost:<host_port>`
 
+
+![example workflow](https://github.com/github/docs/actions/workflows/test.yml/badge.svg)
+
