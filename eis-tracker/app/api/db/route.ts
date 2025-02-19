@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   db.prepare('INSERT INTO users (First_Name) VALUES (?)').run(data.name);
 
   // Query the users table
-  const user = db.prepare('SELECT * FROM users WHERE name = (?)').get(data.name);
+  const user = db.prepare('SELECT * FROM users WHERE First_Name = (?)').get(data.name);
 
   // Respond with the data
   return new Response(JSON.stringify({ user }), { status: 200 });
