@@ -8,7 +8,7 @@ export default function Home() {
   const [logs, setlogs] = useState<string[]>([]);
 
   function loginButton() {
-      let d = new Date().toLocaleString("en-US");
+      const d = new Date().toLocaleString("en-US");
       let newList;
       if (!list.includes(studentID)) {
           newList = list.concat(studentID);

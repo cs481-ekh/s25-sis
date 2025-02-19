@@ -35,4 +35,4 @@ jobs:
           npm install
           
       - run: ./build.sh
-      - run: bash test.sh
+      - run: ./test.sh
