@@ -80,14 +80,14 @@ export default function Home() {
           className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
-
           onClick={simulateLogin}
           className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
         >
           SimulateLogin
         </button>
-        <button>
-          className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition" onClick={() => loginButton()}
+        <button
+          className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition" 
+          onClick={() => loginButton()}
         >
           Login
         </button>
