@@ -4,8 +4,9 @@ cd eis-tracker
 
 NODE_ENV="production"
 
-npm install
-
-npm run build
-
-echo "Next.js build successful"
+if npm run build; then
+  echo "Build successful"
+else
+  echo "Build Failed"
+  exit 1
+fi
