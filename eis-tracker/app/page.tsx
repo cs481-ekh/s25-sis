@@ -47,7 +47,7 @@ export default function Home() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name , studentID}),
     });
 
     if (res.ok) {

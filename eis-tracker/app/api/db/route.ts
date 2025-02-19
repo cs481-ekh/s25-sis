@@ -4,24 +4,28 @@ import  Database  from 'better-sqlite3';
 export async function GET() {
   // Initialize the database in memory
   const db = new Database('database/database.db', { verbose: console.log });
+  db.pragma('journal_mode = WAL');
 
   // Create a table and insert data
-  db.prepare('CREATE TABLE if NOT EXISTS users (studentID INTEGER PRIMARY KEY,'+
+  db.prepare('CREATE TABLE if NOT EXISTS users (studentID INTEGER PRIMARY KEY UNIQUE,'+
                                                 ' First_Name TEXT,'+
                                                 ' Last_Name TEXT,'+
-                                                ' Tags INTEGER,'+
-                                                ' Active INTEGER,'+
-                                                ' Logged_In INTEGER)'
+                                                ' Tags INTEGER NOT NULL DEFAULT 0,'+
+                                                ' Active BOOLEAN NOT NULL DEFAULT FALSE,'+
+                                                ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE)'
                                                 ).run();
-//   db.prepare('INSERT INTO users (name) VALUES (?)').run('Alice');
-//   db.prepare('INSERT INTO users (name) VALUES (?)').run('Bob');
+  db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,'+
+                                                ' Time_In INTEGER NOT NULL,'+
+                                                ' Time_Out INTEGER NOT NULL,'+
+                                                ' User INTEGER REFERENCES users(studentID) ON DELETE RESTRICT ON UPDATE CASCADE)'
+                                                ).run();
 
   // Query the users table
   const users = db.prepare('SELECT * FROM users').all();
 
 
   // Respond with the data, This function currently returns all the users in the database
-  // TODO: Use this fucntion to do somehting useful
+  // TODO: Use this function to do something useful
   return new Response(JSON.stringify({ users }), { status: 200 });
 }
 
