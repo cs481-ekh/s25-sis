@@ -1,27 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+
+import React, { useEffect, useState } from "react";
 
 export default function Home() {
   const [studentID, setStudentID] = useState("");
+  const [list, setlist] = useState<string[]>([]);
+  const [logs, setlogs] = useState<string[]>([]);
   const [name, setName] = useState("");
+
+  function loginButton() {
+      const d = new Date().toLocaleString("en-US");
+      let newList;
+      if (!list.includes(studentID)) {
+          newList = list.concat(studentID);
+          setlogs((logs) => [...logs, `${studentID} logged in at ${d}`]);
+      }
+      else {
+          newList = list.filter((item) => item !== studentID );
+          setlogs((prevLogs) => [...prevLogs, `${studentID} logged out at ${d}`]);
+      }
+
+      setlist(newList);
+  }
   
   useEffect(() => {
     // Make a fetch request to the API route
     async function fetchData() {
-      const res = await fetch('/api/db');
-      if (res.ok) {
-        const data = await res.json();
-        console.log('Database Content:', data.users); // Logs the users data to the console
-      } else {
-        console.error('Failed to fetch data');
-      }
+    const res = await fetch('/api/db');
+    if (res.ok) {
+      const data = await res.json();
+      console.log('Database Content:', data.users); // Logs the users data to the console
+    } else {
+      console.error('Failed to fetch data');
     }
+  }
 
     // Fetch data when the component mounts
     fetchData();
   }, []);
-
+  
+  
   const simulateLogin = async () => {
     const res = await fetch('/api/db', {
       method: 'POST',
@@ -61,11 +80,24 @@ export default function Home() {
           className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
+
           onClick={simulateLogin}
           className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
         >
           SimulateLogin
         </button>
+        <button>
+          className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition" onClick={() => loginButton()}
+        >
+          Login
+        </button>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-8 items-center m-4">
+          <ul>
+              {logs.map((log, index) => (
+                  <li key={index}>{log}</li>
+              ))}
+          </ul>
       </div>
     </div>
   );
