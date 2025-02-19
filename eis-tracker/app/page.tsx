@@ -9,16 +9,44 @@ export default function Home() {
   const [logs, setlogs] = useState<string[]>([]);
   const [name, setName] = useState("");
 
-  function loginButton() {
+  const loginButton = async () => {
       const d = new Date().toLocaleString("en-US");
       let newList;
       if (!list.includes(studentID)) {
           newList = list.concat(studentID);
           setlogs((logs) => [...logs, `${studentID} logged in at ${d}`]);
+          const res = await fetch('/api/db', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name , studentID, mode: 'login' }),
+          });
+      
+          if (res.ok) {
+            const data = await res.json();
+            console.log('New log:', data.log);
+          } else {
+            console.error('Failed to insert log');
+          }
       }
       else {
           newList = list.filter((item) => item !== studentID );
           setlogs((prevLogs) => [...prevLogs, `${studentID} logged out at ${d}`]);
+          const res = await fetch('/api/db', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name , studentID, mode: 'logout' }),
+          });
+      
+          if (res.ok) {
+            const data = await res.json();
+            console.log('Completed log:', data.log);
+          } else {
+            console.error('Failed to finish log');
+          }
       }
 
       setlist(newList);
@@ -41,13 +69,13 @@ export default function Home() {
   }, []);
   
   
-  const simulateLogin = async () => {
+  const registerUser = async () => {
     const res = await fetch('/api/db', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name , studentID}),
+      body: JSON.stringify({ name , studentID, mode: 'register' }),
     });
 
     if (res.ok) {
@@ -80,10 +108,10 @@ export default function Home() {
           className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
-          onClick={simulateLogin}
+          onClick={registerUser}
           className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
         >
-          SimulateLogin
+          Register
         </button>
         <button
           className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition" 
