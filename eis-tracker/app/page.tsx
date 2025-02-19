@@ -1,9 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function Home() {
   const [studentID, setStudentID] = useState("");
+  const [list, setlist] = useState<string[]>([]);
+  const [logs, setlogs] = useState<string[]>([]);
+
+  function loginButton() {
+      let d = new Date().toLocaleString("en-US");
+      let newList;
+      if (!list.includes(studentID)) {
+          newList = list.concat(studentID);
+          setlogs((logs) => [...logs, `${studentID} logged in at ${d}`]);
+      }
+      else {
+          newList = list.filter((item) => item !== studentID );
+          setlogs((prevLogs) => [...prevLogs, `${studentID} logged out at ${d}`]);
+      }
+
+      setlist(newList);
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 bg-gray-100">
@@ -19,10 +36,17 @@ export default function Home() {
           className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
-          className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+          className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition" onClick={() => loginButton()}
         >
           Login
         </button>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-8 items-center m-4">
+          <ul>
+              {logs.map((log, index) => (
+                  <li key={index}>{log}</li>
+              ))}
+          </ul>
       </div>
     </div>
   );
