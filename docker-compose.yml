@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.5'
 
 services:
   nextjs-app:
@@ -9,26 +9,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+      - ./database:/app/database
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-    depends_on:
-      - db
-
-  db:
-    container_name: mysql-container
-    image: mysql:8
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root}"
-      MYSQL_DATABASE: "${MYSQL_DATABASE:-nextjsdb}"
-      MYSQL_USER: "${MYSQL_USER:-nextjsuser}"
-      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-password}"
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-volumes:
-  mysql_data:
-    driver: local

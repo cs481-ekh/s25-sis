@@ -7,7 +7,7 @@ COPY eis-tracker/package*.json ./
 RUN npm install
 
 # Copy the rest of the application
-COPY eis-tracker .
+COPY eis-tracker/app .
 
 # Expose the Next.js default port
 EXPOSE 3000
