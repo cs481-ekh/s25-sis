@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ log }), { status: 200 });
 
   } else if(data.mode === 'logout'){
-    db.prepare('UPDATE logs SET Time_Out = ? WHERE User = ?').run(Date.now(), data.studentID);
+    db.prepare('UPDATE logs SET Time_Out = ? WHERE User = ? AND Time_Out IS NULL').run(Date.now(), data.studentID);
     db.prepare('UPDATE users SET Logged_In = FALSE WHERE StudentID = (?)').run(data.studentID);
 
     const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.studentID); //TODO: THIS ONLY WORKS ONCE
