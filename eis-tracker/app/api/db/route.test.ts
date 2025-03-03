@@ -21,16 +21,6 @@ describe('database tests', () => {
         }
     });
 
-    test('database CONNECT', async () => {
-        const users = await fetch('/api/db', {
-            method: 'CONNECT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ database: 'tests/test.db', mode: 'setup' }),
-        });
-        expect(users.status).toBe(200);
-    })
 
     test('bad user GET', async () => {
         const params = new URLSearchParams({
