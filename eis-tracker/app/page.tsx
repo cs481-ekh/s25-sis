@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 
 export default function Home() {
-  const [studentID, setStudentID] = useState("");
+  const [StudentID, setStudentID] = useState("");
   const [list, setlist] = useState<string[]>([]);
   const [logs, setlogs] = useState<string[]>([]);
   const [name, setName] = useState("");
@@ -12,15 +12,15 @@ export default function Home() {
   const loginButton = async () => {
       const d = new Date().toLocaleString("en-US");
       let newList;
-      if (!list.includes(studentID)) {
-          newList = list.concat(studentID);
-          setlogs((logs) => [...logs, `${studentID} logged in at ${d}`]);
+      if (!list.includes(StudentID)) {
+          newList = list.concat(StudentID);
+          setlogs((logs) => [...logs, `${StudentID} logged in at ${d}`]);
           const res = await fetch('/api/db', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ name , studentID, mode: 'login' }),
+            body: JSON.stringify({ name , StudentID, mode: 'login' }),
           });
       
           if (res.ok) {
@@ -31,14 +31,14 @@ export default function Home() {
           }
       }
       else {
-          newList = list.filter((item) => item !== studentID );
-          setlogs((prevLogs) => [...prevLogs, `${studentID} logged out at ${d}`]);
+          newList = list.filter((item) => item !== StudentID );
+          setlogs((prevLogs) => [...prevLogs, `${StudentID} logged out at ${d}`]);
           const res = await fetch('/api/db', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ name , studentID, mode: 'logout' }),
+            body: JSON.stringify({ name , StudentID, mode: 'logout' }),
           });
       
           if (res.ok) {
@@ -75,7 +75,7 @@ export default function Home() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name , studentID, mode: 'register' }),
+      body: JSON.stringify({ name , StudentID, mode: 'register' }),
     });
 
     if (res.ok) {
@@ -96,7 +96,7 @@ export default function Home() {
         <input
           type="text"
           placeholder="Enter Student ID"
-          value={studentID}
+          value={StudentID}
           onChange={(e) => setStudentID(e.target.value)}
           className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
