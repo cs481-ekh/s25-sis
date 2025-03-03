@@ -223,7 +223,7 @@ export async function DELETE(request: Request) {
 export async function CONNECT(request: Request) {
   // const db = new Database('database.db', { verbose: console.log });
 
-  const data = await request.json();
+  // const data = await request.json();
 
   db.prepare('CREATE TABLE if NOT EXISTS users (StudentID INTEGER PRIMARY KEY UNIQUE,' +
     ' First_Name TEXT,' +
