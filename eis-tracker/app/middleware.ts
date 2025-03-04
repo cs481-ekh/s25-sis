@@ -1,15 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
-  const loggedIn = req.cookies.get('loggedIn'); // Check if user has logged in
+  const token = req.cookies.get('auth_token'); // Adjust based on your auth mechanism
+  console.log("Middleware Started");
 
-  if (req.nextUrl.pathname === '/' && !loggedIn) {
-    return NextResponse.redirect(new URL('/login', req.url)); // Redirect if not logged in
+  if (!token && req.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  return NextResponse.next(); // Allow access otherwise
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/', '/home'], // Apply middleware to these routes
+  matcher: ['/'], // Apply middleware only to the root route
 };
