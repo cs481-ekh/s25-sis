@@ -7,7 +7,6 @@
  * however, this should be used cautiously as it can lead to SQL injection attacks.
  */
 import Database from 'better-sqlite3';
-const db = new Database('database/database.db', { verbose: console.log });
 
 /**
  * @description
@@ -20,7 +19,7 @@ const db = new Database('database/database.db', { verbose: console.log });
  * 
  *          database: 'database.db',
  *          mode: 'user',
- *          StudentID: '123456'
+ *          StudentID: '123456' //this is one additional parameter dependent on the mode
  *      });
  * 
  * const res = await fetch(`/api/db?${params.toString()}`, {
@@ -35,7 +34,7 @@ const db = new Database('database/database.db', { verbose: console.log });
  *   - `user`: Queries one user given a StudentID in the specified database.
  *   - `log`: Queries one log given a LogID in the specified database.
  *   - `MANUAL`: Executes a custom query in the specified database with limited error checking (use cautiously). The `value` field should contain a query string.
- * @param values - a number of additional parameters dependent on `mode` the names of which are exactly:
+ * @param params - a number of additional parameters dependent on `mode` the names of which are exactly:
  *   - `user`: StudentID - user to be queried.
  *   - `log`: LogID - the log to be queried.
  *   - `MANUAL`: sql - the SQL statement to be executed.
@@ -49,14 +48,30 @@ export async function GET(request: Request) {
   if (url.search !== '') {
     // Extract query parameters
     const database = url.searchParams.get('database');
+    const db = new Database('database/' + database);
+
     const mode = url.searchParams.get('mode');
-    const logID = url.searchParams.get('LogID');
 
-    console.log(database, mode, logID); // You can now use the parameters as needed
-
-    return new Response(JSON.stringify({ message: 'not implemented' }), { status: 501 });
-
+    if (mode === 'user') {
+      const StudentID = url.searchParams.get('StudentID');
+      const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(StudentID);
+      if(user === null || user === undefined || user === '') 
+        return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
+      return new Response(JSON.stringify({ user }), { status: 200 });
+    } else if (mode === 'log') {
+      const LogID = url.searchParams.get('LogID');
+      const log = db.prepare('SELECT * FROM logs WHERE LogID = (?)').get(LogID);
+      return new Response(JSON.stringify({ log }), { status: 200 });
+    } else if (mode === 'MANUAL') {
+      const sql = url.searchParams.get('sql');
+      if (sql === null) {
+        return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
+      }
+      const result = db.prepare(sql).all();
+      return new Response(JSON.stringify({ result }), { status: 200 });
+    }
   } else {
+    const db = new Database('database/database.db');
 
     // Create a table and insert data
     db.prepare('CREATE TABLE if NOT EXISTS users (StudentID INTEGER PRIMARY KEY UNIQUE,' +
@@ -74,11 +89,11 @@ export async function GET(request: Request) {
 
     // Query the users table
     const users = db.prepare('SELECT * FROM users').all();
+    const logs = db.prepare('SELECT * FROM logs').all();
 
 
-    // Respond with the data, This function currently returns all the users in the database
-    // TODO: Use this function to do something useful
-    return new Response(JSON.stringify({ users }), { status: 200 });
+    // Respond with the data
+    return new Response(JSON.stringify({ users, logs }), { status: 200 });
 
   }
 }
@@ -96,7 +111,7 @@ export async function GET(request: Request) {
  *          headers: {
  *            'Content-Type': 'application/json',
  *          },
- *          body: JSON.stringify({database, mode, value}),
+ *          body: JSON.stringify({database, mode, values}),
  *        });
  * This call uses fetch to send a POST request to the API route.
  * 
@@ -117,22 +132,28 @@ export async function GET(request: Request) {
  *   - `status`: `400` if the operation failed.
  */
 export async function POST(request: Request) {
-
-  // Initialize the database in memory
-  //   const db = new Database('database/database.db', { verbose: console.log });
-
   // Get the data from the request
   const data = await request.json();
+  const db = new Database('database/' + data.database);
+
+
 
   if (data.mode === 'register') {
-    // Insert the data into the users table
-    db.prepare('INSERT INTO users (StudentID, First_Name) VALUES (?,?)').run(data.StudentID, data.name);
+    if (data.StudentID === null || data.name === null || data.Last_Name === null)
+      return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
+    else if (data.StudentID === '' || data.name === '' || data.Last_Name === '')
+      return new Response(JSON.stringify({ message: 'Empty required fields' }), { status: 400 });
 
-    // Query the users table
-    const user = db.prepare('SELECT * FROM users WHERE First_Name = (?)').get(data.name);
-
-    // Respond with the data
-    return new Response(JSON.stringify({ user }), { status: 200 });
+    if (data.Tags === null) {
+      // Insert the data into the users table
+      db.prepare('INSERT INTO users (StudentID, First_Name, Last_Name) VALUES (?,?,?)').run(data.StudentID, data.name, data.Last_Name);
+      const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+      return new Response(JSON.stringify({ user }), { status: 200 });
+    } else {
+      db.prepare('INSERT INTO users (StudentID, First_Name, Last_Name, Tags) VALUES (?,?,?,?)').run(data.StudentID, data.name, data.Last_Name, data.Tags);
+      const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+      return new Response(JSON.stringify({ user }), { status: 200 });
+    }
 
   } else if (data.mode === 'login') {
     db.prepare('UPDATE users SET Active = TRUE WHERE StudentID = (?)').run(data.StudentID);
@@ -148,6 +169,15 @@ export async function POST(request: Request) {
 
     const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
     return new Response(JSON.stringify({ log }), { status: 200 });
+  } else if (data.mode === 'MANUAL') {
+    const sql = data.sql;
+    if (sql === null) {
+      return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
+    }
+    const result = db.prepare(sql).all();
+    return new Response(JSON.stringify({ result }), { status: 200 });
+  } else {
+    return new Response(JSON.stringify({ message: 'Invalid mode' }), { status: 400 });
   }
 
 }
@@ -180,13 +210,26 @@ export async function POST(request: Request) {
  *   - `status`: `400` if the operation failed.
  */
 export async function DELETE(request: Request) {
-  // const db = new Database('database.db', { verbose: console.log });
-
   const data = await request.json();
+  if(data.database === null || data.database === '')
+    return new Response(JSON.stringify({ message: 'No database provided' }), { status: 400 });
+  if(data.StudentID === null || data.StudentID === '')
+    return new Response(JSON.stringify({ message: 'No StudentID provided' }), { status: 400 });
 
+  if(data.mode === 'user') {
+  const db = new Database('database/' + data.database);
   db.prepare('DELETE FROM users WHERE name = (?)').run(data.StudentID);
+  } else if(data.mode === 'MANUAL') {
+    const db = new Database('database/' + data.database);
+    const sql = data.sql;
+    if (sql === null) {
+      return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
+    }
+    const res = db.prepare(sql).all();
+    return new Response(JSON.stringify({ res }), { status: 200 });
+  } else {
+    return new Response(JSON.stringify({ message: 'Invalid mode' }), { status: 400 });
+  }
 
   return new Response(JSON.stringify({ message: 'User deleted' }), { status: 200 });
 }
-
-
