@@ -8,13 +8,13 @@ export default function Home() {
     const [list, setlist] = useState<string[]>([]);
     const [logs, setlogs] = useState<string[]>([]);
     const [name, setName] = useState("");
-    const [loggedInStudents, setLoggedInStudents] = useState<string[]>([]);
+    const [loggedInStudents, setLoggedInStudents] = useState<any[]>([]); // Store full student data
 
     async function fetchStudents() {
         const res = await fetch('/api/db');
         if (res.ok) {
             const data = await res.json();
-            setLoggedInStudents(data.loggedInUsers || []);
+            setLoggedInStudents(data.users || []);
         } else {
             console.error('Failed to fetch logged-in students');
         }
@@ -72,7 +72,6 @@ export default function Home() {
             const res = await fetch('/api/db');
             if (res.ok) {
                 const data = await res.json();
-                setLoggedInStudents(data.loggedInUsers || []);
                 console.log('Database Content:', data.users); // Logs the users data to the console
             } else {
                 console.error('Failed to fetch data');
@@ -82,6 +81,12 @@ export default function Home() {
         // Fetch data when the component mounts
         fetchData();
     }, []);
+
+    //for updated logged in students
+    useEffect(() => {
+        fetchStudents();
+    }, [list]); // Runs whenever `list` updates
+
 
 
     const registerUser = async () => {
@@ -147,13 +152,13 @@ export default function Home() {
             <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
                 <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
                 <ul className="list-disc pl-5">
-                    {loggedInStudents.length > 0 ? (
-                        loggedInStudents.map((student, index) => (
-                            <li key={index} className="text-lg">{student}</li>
-                        ))
-                    ) : (
-                        <p>No students currently logged in.</p>
-                    )}
+                    {loggedInStudents.map(student => (
+                        <li key={student.StudentID}>
+                            <div><strong>First Name:</strong> {student.First_Name}</div>
+                            <div><strong>Tags:</strong> {student.Tags}</div>
+                            <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
+                        </li>
+                    ))}
                 </ul>
             </div>
         </div>
