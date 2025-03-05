@@ -27,14 +27,13 @@ describe('database tests', () => {
     });
 
     // Runs once after all tests
-    afterAll(() => {
-        // Clean up the file again after tests
-        if (fs.existsSync(filePath)) {
-            fs.unlink(filePath, (err) => {
-                if (err) throw err;
-              }); // Deletes the file
-        }
-    });
+    // @todo: Uncomment this after fixing the issue with the database file being locked
+    // afterAll(() => {
+    //     // Clean up the file again after tests
+    //     if (fs.existsSync(filePath)) {
+    //         fs.unlinkSync(filePath); // Deletes the file
+    //     }
+    // });
 
 
     test('bad user GET', async () => {
