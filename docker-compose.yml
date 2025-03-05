@@ -1,4 +1,4 @@
-version: '3.5'
+version: '3.8'
 
 services:
   nextjs-app:
@@ -7,9 +7,17 @@ services:
     ports:
       - "${HOST_PORT:-8081}:3000"
     volumes:
-      - .:/app
+      - ./app:/app
       - /app/node_modules
       - ./database:/app/database
     environment:
       - NODE_ENV=production
     restart: unless-stopped
+    depends_on:
+      - database
+
+  database:
+    image: alpine
+    container_name: sqlite-db
+    volumes:
+      - ./database:/database
