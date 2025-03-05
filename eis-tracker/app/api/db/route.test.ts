@@ -161,7 +161,7 @@ describe('database tests', () => {
         const res = await route.POST(req);
         if(!res)
             fail();
-        const resBody = await res.json();
+        // const resBody = await res.json();
         expect(res.status).toBe(200);
     })
 
@@ -181,7 +181,7 @@ describe('database tests', () => {
         const res = await route.POST(req);
         if(!res)
             fail();
-        const resBody = await res.json();
+        // const resBody = await res.json();
         expect(res.status).toBe(400);
     })
 
