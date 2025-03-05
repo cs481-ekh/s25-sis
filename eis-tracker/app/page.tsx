@@ -4,54 +4,78 @@
 import React, { useEffect, useState } from "react";
 
 export default function Home() {
-  const [StudentID, setStudentID] = useState("");
-  const [list, setlist] = useState<string[]>([]);
-  const [logs, setlogs] = useState<string[]>([]);
-  const [name, setName] = useState("");
+    const [StudentID, setStudentID] = useState("");
+    const [list, setlist] = useState<string[]>([]);
+    const [logs, setlogs] = useState<string[]>([]);
+    const [name, setName] = useState("");
+    
+    interface Student {
+        StudentID: string;
+        First_Name: string;
+        Tags: string;
+        Logged_In: boolean;
+    }
 
-  const loginButton = async () => {
-      const d = new Date().toLocaleString("en-US");
-      let newList;
-      if (!list.includes(StudentID)) {
-          newList = list.concat(StudentID);
-          setlogs((logs) => [...logs, `${StudentID} logged in at ${d}`]);
-          const res = await fetch('/api/db', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ name , StudentID, mode: 'login' }),
-          });
-      
-          if (res.ok) {
-            const data = await res.json();
-            console.log('New log:', data.log);
-          } else {
-            console.error('Failed to insert log');
-          }
-      }
-      else {
-          newList = list.filter((item) => item !== StudentID );
-          setlogs((prevLogs) => [...prevLogs, `${StudentID} logged out at ${d}`]);
-          const res = await fetch('/api/db', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ name , StudentID, mode: 'logout' }),
-          });
-      
-          if (res.ok) {
-            const data = await res.json();
-            console.log('Completed log:', data.log);
-          } else {
-            console.error('Failed to finish log');
-          }
-      }
+    const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);    //function for fetching students from db
+    
+    async function fetchStudents() {
+        const res = await fetch('/api/db');
+        console.log(loggedInStudents);
 
-      setlist(newList);
-  }
-  
+        if (res.ok) {
+            const data = await res.json();
+            setLoggedInStudents(data.users || []);
+        } else {
+            console.error('Failed to fetch logged-in students');
+        }
+    }
+
+    const loginButton = async () => {
+        const d = new Date().toLocaleString("en-US");
+        let newList;
+        if (!list.includes(StudentID)) {
+            newList = list.concat(StudentID);
+            setlogs((logs) => [...logs, `${StudentID} logged in at ${d}`]);
+            const res = await fetch('/api/db', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name , StudentID, mode: 'login' }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                console.log('New log:', data.log);
+            } else {
+                console.error('Failed to insert log');
+            }
+        }
+        else {
+            newList = list.filter((item) => item !== StudentID );
+            setlogs((prevLogs) => [...prevLogs, `${StudentID} logged out at ${d}`]);
+            const res = await fetch('/api/db', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name , StudentID, mode: 'logout' }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                console.log('Completed log:', data.log);
+            } else {
+                console.error('Failed to finish log');
+            }
+        }
+
+        setlist(newList);
+
+        //Fetch students
+        await fetchStudents();
+    }
+
   useEffect(() => {
     // Make a fetch request to the API route
     async function fetchData() {
@@ -68,8 +92,14 @@ export default function Home() {
     // Fetch data when the component mounts
     fetchData();
   }, []);
-  
-  
+
+    //updates every time 'list' gets changed
+    useEffect(() => {
+        fetchStudents();
+    }, [list]);
+
+
+
   const registerUser = async () => {
     const res = await fetch('/api/db', {
       method: 'POST',
@@ -87,47 +117,60 @@ export default function Home() {
     }
   };
 
+    return (
+        <div className="flex min-h-screen">
+            <div className="flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 bg-gray-100">
+                <h1 className="text-2xl font-bold mb-4">Welcome to the EIS</h1>
+                <p className="mb-6 text-gray-700">Please enter your Student ID to log in:</p>
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 bg-gray-100">
-      <h1 className="text-2xl font-bold mb-4">Welcome to the EIS</h1>
-      <p className="mb-6 text-gray-700">Please enter your Student ID to log in:</p>
-      
-      <div className="flex flex-col sm:flex-row gap-4 items-center">
-        <input
-          type="text"
-          placeholder="Enter Student ID"
-          value={StudentID}
-          onChange={(e) => setStudentID(e.target.value)}
-          className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="text"
-          placeholder="Enter Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          onClick={registerUser}
-          className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-        >
-          Register
-        </button>
-        <button
-          className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition" 
-          onClick={() => loginButton()}
-        >
-          Login
-        </button>
-      </div>
-      <div className="flex flex-col sm:flex-row gap-8 items-center m-4">
-          <ul>
-              {logs.map((log, index) => (
-                  <li key={index}>{log}</li>
-              ))}
-          </ul>
-      </div>
-    </div>
-  );
+                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    <input
+                        type="text"
+                        placeholder="Enter Student ID"
+                        value={StudentID}
+                        onChange={(e) => setStudentID(e.target.value)}
+                        className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                        type="text"
+                        placeholder="Enter Name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                        onClick={registerUser}
+                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                    >
+                        Register
+                    </button>
+                    <button
+                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        onClick={() => loginButton()}
+                    >
+                        Login
+                    </button>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-8 items-center m-4">
+                    <ul>
+                        {logs.map((log, index) => (
+                            <li key={index}>{log}</li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+            <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
+                <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
+                <ul className="list-disc pl-5">
+                    {loggedInStudents.map(student => (
+                        <li key={student.StudentID}>
+                            <div><strong>First Name:</strong> {student.First_Name}</div>
+                            <div><strong>Tags:</strong> {student.Tags}</div>
+                            <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
 }
