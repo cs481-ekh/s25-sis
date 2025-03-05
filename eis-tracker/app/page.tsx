@@ -10,8 +10,11 @@ export default function Home() {
     const [name, setName] = useState("");
     const [loggedInStudents, setLoggedInStudents] = useState<any[]>([]); // Store full student data
 
+    //function for fetching students from db
     async function fetchStudents() {
         const res = await fetch('/api/db');
+        console.log(loggedInStudents);
+
         if (res.ok) {
             const data = await res.json();
             setLoggedInStudents(data.users || []);
@@ -82,11 +85,10 @@ export default function Home() {
         fetchData();
     }, []);
 
-    //for updated logged in students
+    //updates every time 'list' gets changed
     useEffect(() => {
         fetchStudents();
-    }, [list]); // Runs whenever `list` updates
-
+    }, [list]);
 
 
     const registerUser = async () => {
