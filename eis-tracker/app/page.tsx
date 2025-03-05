@@ -69,21 +69,22 @@ export default function Home() {
         await fetchStudents();
     }
 
-    useEffect(() => {
-        // Make a fetch request to the API route
-        async function fetchData() {
-            const res = await fetch('/api/db');
-            if (res.ok) {
-                const data = await res.json();
-                console.log('Database Content:', data.users); // Logs the users data to the console
-            } else {
-                console.error('Failed to fetch data');
-            }
-        }
+  useEffect(() => {
+    // Make a fetch request to the API route
+    async function fetchData() {
+    const res = await fetch('/api/db');
+    if (res.ok) {
+      const data = await res.json();
+      console.log('User Database Content:', data.users); // Logs the users data to the console
+      console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
+    } else {
+      console.error('Failed to fetch data');
+    }
+  }
 
-        // Fetch data when the component mounts
-        fetchData();
-    }, []);
+    // Fetch data when the component mounts
+    fetchData();
+  }, []);
 
     //updates every time 'list' gets changed
     useEffect(() => {
@@ -91,23 +92,23 @@ export default function Home() {
     }, [list]);
 
 
-    const registerUser = async () => {
-        const res = await fetch('/api/db', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ name , StudentID, mode: 'register' }),
-        });
 
-        if (res.ok) {
-            const data = await res.json();
-            console.log('Inserted User:', data.user);
-        } else {
-            console.error('Failed to insert user');
-        }
-    };
+  const registerUser = async () => {
+    const res = await fetch('/api/db', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name , StudentID, mode: 'register' }),
+    });
 
+    if (res.ok) {
+      const data = await res.json();
+      console.log('Inserted User:', data.user);
+    } else {
+      console.error('Failed to insert user');
+    }
+  };
 
     return (
         <div className="flex min-h-screen">
