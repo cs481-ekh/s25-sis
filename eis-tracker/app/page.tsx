@@ -8,9 +8,16 @@ export default function Home() {
     const [list, setlist] = useState<string[]>([]);
     const [logs, setlogs] = useState<string[]>([]);
     const [name, setName] = useState("");
-    const [loggedInStudents, setLoggedInStudents] = useState<any[]>([]); // Store full student data
+    
+    interface Student {
+        StudentID: string;
+        First_Name: string;
+        Tags: string;
+        Logged_In: boolean;
+    }
 
-    //function for fetching students from db
+    const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);    //function for fetching students from db
+    
     async function fetchStudents() {
         const res = await fetch('/api/db');
         console.log(loggedInStudents);
