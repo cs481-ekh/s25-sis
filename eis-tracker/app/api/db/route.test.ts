@@ -1,4 +1,3 @@
-import fetchMock from 'jest-fetch-mock';
 import * as fs from 'fs';
 import Database from 'better-sqlite3';
 import * as route from './route';
@@ -8,7 +7,6 @@ const filePath = 'database/test.db';
 describe('database tests', () => {
     // Runs once before all tests
     beforeAll(() => {
-        fetchMock.enableMocks();
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath); // Deletes the file
         }
@@ -36,7 +34,6 @@ describe('database tests', () => {
                 if (err) throw err;
               }); // Deletes the file
         }
-        fetchMock.resetMocks();
     });
 
 
@@ -165,7 +162,7 @@ describe('database tests', () => {
         const res = await route.POST(req);
         if(!res)
             fail();
-        // const resBody = await res.json();
+        const resBody = await res.json();
         expect(res.status).toBe(200);
     })
 
@@ -185,7 +182,7 @@ describe('database tests', () => {
         const res = await route.POST(req);
         if(!res)
             fail();
-        // const resBody = await res.json();
+        const resBody = await res.json();
         expect(res.status).toBe(400);
     })
 
@@ -280,7 +277,7 @@ describe('database tests', () => {
         expect(res.status).toBe(200);
     })
 
-    test('user DELETE', async () => {
+    test('user with logs DELETE', async () => {
 
         const req = new Request(`http://localhost:3000/api/db?`, {
             method: 'DELETE',
@@ -288,6 +285,23 @@ describe('database tests', () => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ database: 'test.db', mode: 'user', StudentID: 123456 }),
+        });
+
+        const res = await route.DELETE(req);
+        if(!res)
+            fail();
+        // const resBody = await res.json();
+        expect(res.status).toBe(400);
+    })
+
+    test('user DELETE', async () => {
+
+        const req = new Request(`http://localhost:3000/api/db?`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ database: 'test.db', mode: 'user', StudentID: 1234567 }),
         });
 
         const res = await route.DELETE(req);
