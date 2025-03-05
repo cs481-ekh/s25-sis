@@ -58,7 +58,8 @@ export default function Home() {
     const res = await fetch('/api/db');
     if (res.ok) {
       const data = await res.json();
-      console.log('Database Content:', data.users); // Logs the users data to the console
+      console.log('User Database Content:', data.users); // Logs the users data to the console
+      console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
     } else {
       console.error('Failed to fetch data');
     }
