@@ -61,6 +61,8 @@ export async function GET(request: Request) {
     } else if (mode === 'log') {
       const LogID = url.searchParams.get('LogID');
       const log = db.prepare('SELECT * FROM logs WHERE LogID = (?)').get(LogID);
+      if(log === null || log === undefined || log === '') 
+        return new Response(JSON.stringify({ message: 'Log not found' }), { status: 400 });
       return new Response(JSON.stringify({ log }), { status: 200 });
     } else if (mode === 'MANUAL') {
       const sql = url.searchParams.get('sql');
@@ -216,11 +218,10 @@ export async function DELETE(request: Request) {
   if(data.StudentID === null || data.StudentID === '')
     return new Response(JSON.stringify({ message: 'No StudentID provided' }), { status: 400 });
 
-  if(data.mode === 'user') {
   const db = new Database('database/' + data.database);
+  if(data.mode === 'user') {
   db.prepare('DELETE FROM users WHERE name = (?)').run(data.StudentID);
   } else if(data.mode === 'MANUAL') {
-    const db = new Database('database/' + data.database);
     const sql = data.sql;
     if (sql === null) {
       return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
