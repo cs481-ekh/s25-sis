@@ -7,7 +7,7 @@ import path from "path";
  * Converts a timestamp (milliseconds) to a human-readable format.
  * Wraps values in double quotes to prevent Excel from auto-formatting.
  */
-const formatValue = (value: any) => `"${value !== null ? value : "N/A"}"`; 
+const formatValue = (value: string | number | null | undefined) => `"${value !== null ? value : "N/A"}"`; 
 const formatDate = (timestamp: number | null) => `"${timestamp ? new Date(timestamp).toLocaleString() : "N/A"}"`;
 
 /**
@@ -18,8 +18,13 @@ export async function GET() {
         // Connect to the SQLite database
         const db = new Database("database/database.db");
 
-        // Fetch all logs from the database
-        const logs = db.prepare("SELECT LogID, User AS StudentID, Time_In, Time_Out FROM logs").all();
+        // Fetch all logs from the database with correct type definition
+        const logs = db.prepare("SELECT LogID, User AS StudentID, Time_In, Time_Out FROM logs").all() as Array<{
+            LogID: number;
+            StudentID: number;
+            Time_In: number | null;
+            Time_Out: number | null;
+        }>;
 
         // Add BOM (Byte Order Mark) to fix Excel auto-formatting issues
         let csvContent = `\uFEFF"LogID","StudentID","Time_In","Time_Out"\n`; // CSV Header with BOM
