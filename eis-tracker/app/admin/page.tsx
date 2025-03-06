@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
@@ -12,7 +12,7 @@ export default function Page() {
     const [admin, setAdmin] = useState(false);
 
     const register = async () => {
-        let res = await fetch('/api/db', {
+        let res = await fetch('', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -47,6 +47,37 @@ export default function Page() {
             console.error('Failed to update tags');
         }
     }
+
+    useEffect(() => {
+        // Make a fetch request to the API route
+        async function fetchData() {
+            const res = await fetch('/api/db');
+            if (res.ok) {
+                const data = await res.json();
+                console.log('User Database Content:', data.users); // Logs the users data to the console
+                console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
+            } else {
+                console.error('Failed to fetch data');
+            }
+        }
+
+        async function createTable() {
+            try {
+                const res = await fetch('/api/db', { method: 'GET' });
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log('Database initialized:', data);
+                } else {
+                    console.error('Failed to initialize database');
+                }
+            } catch (error) {
+                console.error('Error creating database:', error);
+            }
+        }
+
+        createTable();
+        fetchData();
+    });
 
     return (
         <div className="flex flex-col items-start justify-start min-h-screen p-8 sm:p-20 bg-gray-100 space-y-4">
