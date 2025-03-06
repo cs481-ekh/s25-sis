@@ -136,7 +136,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   // Get the data from the request
   const data = await request.json();
-  const db = new Database('database/' + data.database);
+  const db = new Database('database/' + data.database || 'database.db');
 
 
 
@@ -180,7 +180,7 @@ export async function POST(request: Request) {
     if(user === undefined) 
       return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
     const log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out IS NULL').get(data.StudentID);
-    if(log === undefined) 
+    if(log === undefined)
       return new Response(JSON.stringify({ message: 'User not logged in' }), { status: 400 });
     }
     db.prepare('UPDATE logs SET Time_Out = ? WHERE User = ? AND Time_Out IS NULL').run(Date.now(), data.StudentID);
@@ -195,6 +195,13 @@ export async function POST(request: Request) {
     }
     const result = db.prepare(sql).all();
     return new Response(JSON.stringify({ result }), { status: 200 });
+  } else if (data.mode === 'edit_tags') {
+    if (data.StudentID === undefined || data.Tags === undefined) {
+      return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
+    }
+    db.prepare('UPDATE users SET Tags = ? WHERE StudentID = ?').run(data.Tags, data.StudentID);
+    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+    return new Response(JSON.stringify({ user }), { status: 200 });
   } else {
     return new Response(JSON.stringify({ message: 'Invalid mode' }), { status: 400 });
   }
