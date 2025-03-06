@@ -79,17 +79,32 @@ export default function Home() {
   useEffect(() => {
     // Make a fetch request to the API route
     async function fetchData() {
-    const res = await fetch('/api/db');
-    if (res.ok) {
-      const data = await res.json();
-      console.log('User Database Content:', data.users); // Logs the users data to the console
-      console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
-    } else {
-      console.error('Failed to fetch data');
+        const res = await fetch('/api/db');
+        if (res.ok) {
+          const data = await res.json();
+          console.log('User Database Content:', data.users); // Logs the users data to the console
+          console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
+        } else {
+          console.error('Failed to fetch data');
+        }
     }
+  async function createTable() {
+      try {
+          const res = await fetch('/api/db', { method: 'GET' });
+          if (res.ok) {
+              const data = await res.json();
+              console.log('Database initialized:', data);
+              await fetchStudents(); // Fetch users after database creation
+          } else {
+              console.error('Failed to initialize database');
+          }
+      } catch (error) {
+          console.error('Error creating database:', error);
+      }
   }
 
-    // Fetch data when the component mounts
+  // Initialize database on mount
+  createTable();
     fetchData();
   }, []);
 
@@ -101,7 +116,7 @@ export default function Home() {
 
 
   const registerUser = async () => {
-    const res = await fetch('/api/db', {
+    const res = await fetch('', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -110,8 +125,7 @@ export default function Home() {
     });
 
     if (res.ok) {
-      const data = await res.json();
-      console.log('Inserted User:', data.user);
+      console.log('Inserted User');
     } else {
       console.error('Failed to insert user');
     }
