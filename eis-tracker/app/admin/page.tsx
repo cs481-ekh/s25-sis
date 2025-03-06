@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
@@ -9,6 +9,76 @@ export default function Page() {
     const [blue, setBlue] = useState(false);
     const [green, setGreen] = useState(false);
     const [orange, setOrange] = useState(false);
+    const [admin, setAdmin] = useState(false);
+
+    const register = async () => {
+        let res = await fetch('', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name , StudentID, mode: 'register' }),
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            console.log('Inserted User:', data.user);
+        } else {
+            console.error('Failed to insert user');
+        }
+        let tags = 0
+        if (white) {tags |= 0b1}
+        if (blue) {tags |= 0b10}
+        if (green) {tags |= 0b100}
+        if (orange) {tags |= 0b1000}
+        if (admin) {tags |= 0b10000}
+
+        res = await fetch('/api/db', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tags, mode: 'edit_tags' }),
+        });
+
+        if (res.ok) {
+            console.log('Updated Tags To', tags);
+        } else {
+            console.error('Failed to update tags');
+        }
+    }
+
+    useEffect(() => {
+        // Make a fetch request to the API route
+        async function fetchData() {
+            const res = await fetch('/api/db');
+            if (res.ok) {
+                const data = await res.json();
+                console.log('User Database Content:', data.users); // Logs the users data to the console
+                console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
+            } else {
+                console.error('Failed to fetch data');
+            }
+        }
+
+        async function createTable() {
+            try {
+                const res = await fetch('/api/db', { method: 'GET' });
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log('Database initialized:', data);
+                } else {
+                    console.error('Failed to initialize database');
+                }
+            } catch (error) {
+                console.error('Error creating database:', error);
+            }
+        }
+
+        createTable();
+        fetchData();
+    });
+
     return (
         <div className="flex flex-col items-start justify-start min-h-screen p-8 sm:p-20 bg-gray-100 space-y-4">
 
@@ -54,14 +124,23 @@ export default function Page() {
                     onChange={() => setOrange(!orange)}
                 /> Orange Tag
             </label>
+            <label>
+                <input
+                    type="checkbox"
+                    checked={admin}
+                    onChange={() => setAdmin(!admin)}
+                /> Admin User
+            </label>
             <div className="flex flex-col sm:flex-row gap-4 items-center">
                 <button
                     className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                    onClick={() => register()}
                 >
                     Register User
                 </button>
                 <button
                     className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                    onClick={() => register()}
                 >
                     Update User
                 </button>
