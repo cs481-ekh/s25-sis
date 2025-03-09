@@ -1,23 +1,13 @@
-version: '3.8'
-
+version: '3'
 services:
   nextjs-app:
     container_name: nextjs-container
     build: .
     ports:
       - "${HOST_PORT:-8081}:3000"
+    # Mount the database directory for persistence so that changes are not lost on container rebuilds
     volumes:
-      - ./app:/app
-      - /app/node_modules
-      - ./database:/app/database
+      - ./eis-tracker/database:/eis-tracker/database
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-    depends_on:
-      - database
-
-  database:
-    image: alpine
-    container_name: sqlite-db
-    volumes:
-      - ./database:/database
