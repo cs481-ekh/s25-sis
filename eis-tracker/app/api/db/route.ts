@@ -29,7 +29,7 @@ import Database from 'better-sqlite3';
  *            'Content-Type': 'application/json',}
  *        });
  * @param {Request} request - The incoming HTTP request containing the body for the operation.
- * @param {string} database - The database file path.
+ * @param {string} database - The database file path. [OPTIONAL]
  * @param {string} mode - The mode of the request:
  *   - `user`: Queries one user given a StudentID in the specified database.
  *   - `log`: Queries one log given a LogID in the specified database.
@@ -47,8 +47,7 @@ export async function GET(request: Request) {
 
   if (url.search !== '') {
     // Extract query parameters
-    const database = url.searchParams.get('database');
-    const db = new Database('database/' + database);
+    const db = new Database('database/' + (url.searchParams.get('database') || 'database.db'));
 
     const mode = url.searchParams.get('mode');
 
@@ -73,6 +72,7 @@ export async function GET(request: Request) {
       return new Response(JSON.stringify({ result }), { status: 200 });
     }
   } else {
+    console.log('Creating tables');
     const db = new Database('database/database.db');
 
     // Create a table and insert data
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
  * This call uses fetch to send a POST request to the API route.
  * 
  * @param {Request} request - The incoming HTTP request containing the body for the operation.
- * @param {string} database - The database file path.
+ * @param {string} database - The database file path. [OPTIONAL]
  * @param {string} mode - The mode of the request:
  *   - `register`: Inserts a new user into the `users` table.
  *   - `login`: Updates the user to active and logs the action in the `logs` table.
@@ -136,7 +136,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   // Get the data from the request
   const data = await request.json();
-  const db = new Database('database/' + data.database || 'database.db');
+  const db = new Database('database/' + (data.database || 'database.db'));
 
 
 
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     }
     if (data.StudentID === undefined || data.First_Name === undefined || data.Last_Name === undefined)
       return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
-    else if (data.StudentID === '' || data.First_Name === '' || data.Last_Name === '')
+    if (data.StudentID === '' || data.First_Name === '' || data.Last_Name === '')
       return new Response(JSON.stringify({ message: 'Empty required fields' }), { status: 400 });
 
     if (data.Tags === undefined) {
@@ -169,7 +169,8 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
     }
     db.prepare('INSERT INTO logs (Time_In, User) VALUES (?,?)').run(Date.now(), data.StudentID);
-    db.prepare('UPDATE users SET Logged_In = TRUE AND Active = TRUE WHERE StudentID = (?)').run(data.StudentID);
+    db.prepare('UPDATE users SET Logged_In = TRUE WHERE StudentID = (?)').run(data.StudentID);
+    db.prepare('UPDATE users SET Active = TRUE WHERE StudentID = (?)').run(data.StudentID);
 
     const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
     return new Response(JSON.stringify({ log }), { status: 200 });
@@ -224,7 +225,7 @@ export async function POST(request: Request) {
  *          body: JSON.stringify({database, mode, value}),
  *        });
  * @param {Request} request - The incoming HTTP request containing the body for the operation.
- * @param {string} database - The database file path.
+ * @param {string} database - The database file path. [OPTIONAL]
  * @param {string} mode - The mode of the request:
  *   - `user`: Deletes the specified user from the `users` table.
  *   - `MANUAL`: Executes a custom query in the specified database with limited error checking (use cautiously). The `value` field should contain a query string.
@@ -237,14 +238,12 @@ export async function POST(request: Request) {
  */
 export async function DELETE(request: Request) {
   const data = await request.json();
-  if(data.database === undefined || data.database === '')
-    return new Response(JSON.stringify({ message: 'No database provided' }), { status: 400 });
-  if(data.StudentID === undefined || data.StudentID === '')
-    return new Response(JSON.stringify({ message: 'No StudentID provided' }), { status: 400 });
 
-  const db = new Database('database/' + data.database);
+  const db = new Database('database/' + (data.database || 'database.db'));
   if(data.mode === 'user') {
     {
+      if(data.StudentID === undefined || data.StudentID === '')
+        return new Response(JSON.stringify({ message: 'No StudentID provided' }), { status: 400 });
       const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
       if(user === undefined) 
         return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
