@@ -7,7 +7,7 @@ export default function Home() {
     const [StudentID, setStudentID] = useState("");
     const [list, setlist] = useState<string[]>([]);
     const [logs, setlogs] = useState<string[]>([]);
-    const [name, setName] = useState("");
+    const [First_Name, setName] = useState("");
     
     interface Student {
         StudentID: string;
@@ -41,7 +41,7 @@ export default function Home() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name , StudentID, mode: 'login' }),
+                body: JSON.stringify({ First_Name , StudentID, mode: 'login'}),
             });
 
             if (res.ok) {
@@ -59,7 +59,7 @@ export default function Home() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name , StudentID, mode: 'logout' }),
+                body: JSON.stringify({ First_Name , StudentID, mode: 'logout' }),
             });
 
             if (res.ok) {
@@ -116,16 +116,18 @@ export default function Home() {
 
 
   const registerUser = async () => {
-    const res = await fetch('', {
+    const res = await fetch('/api/db', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name , StudentID, mode: 'register' }),
+      body: JSON.stringify({ First_Name , StudentID, mode: 'register', Last_Name: 'Smith'}),
     });
 
     if (res.ok) {
       console.log('Inserted User');
+      const data = await res.json();
+      console.log('New User:', data.user);
     } else {
       console.error('Failed to insert user');
     }
@@ -148,7 +150,7 @@ export default function Home() {
                     <input
                         type="text"
                         placeholder="Enter Name"
-                        value={name}
+                        value={First_Name}
                         onChange={(e) => setName(e.target.value)}
                         className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
