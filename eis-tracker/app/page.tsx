@@ -7,11 +7,10 @@ export default function Home() {
     const [StudentID, setStudentID] = useState("");
     const [list, setlist] = useState<string[]>([]);
     const [logs, setlogs] = useState<string[]>([]);
-    const [name, setName] = useState("");
+    const [First_Name, setName] = useState("");
 
     //Path to default student image
     const imagePath = `/blankimage.png`;
-
 
     interface Student {
         StudentID: string;
@@ -45,7 +44,7 @@ export default function Home() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name , StudentID, mode: 'login' }),
+                body: JSON.stringify({ First_Name , StudentID, mode: 'login'}),
             });
 
             if (res.ok) {
@@ -63,7 +62,7 @@ export default function Home() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name , StudentID, mode: 'logout' }),
+                body: JSON.stringify({ First_Name , StudentID, mode: 'logout' }),
             });
 
             if (res.ok) {
@@ -83,17 +82,32 @@ export default function Home() {
   useEffect(() => {
     // Make a fetch request to the API route
     async function fetchData() {
-    const res = await fetch('/api/db');
-    if (res.ok) {
-      const data = await res.json();
-      console.log('User Database Content:', data.users); // Logs the users data to the console
-      console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
-    } else {
-      console.error('Failed to fetch data');
+        const res = await fetch('/api/db');
+        if (res.ok) {
+          const data = await res.json();
+          console.log('User Database Content:', data.users); // Logs the users data to the console
+          console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
+        } else {
+          console.error('Failed to fetch data');
+        }
     }
+  async function createTable() {
+      try {
+          const res = await fetch('/api/db', { method: 'GET' });
+          if (res.ok) {
+              const data = await res.json();
+              console.log('Database initialized:', data);
+              await fetchStudents(); // Fetch users after database creation
+          } else {
+              console.error('Failed to initialize database');
+          }
+      } catch (error) {
+          console.error('Error creating database:', error);
+      }
   }
 
-    // Fetch data when the component mounts
+  // Initialize database on mount
+  createTable();
     fetchData();
   }, []);
 
@@ -110,12 +124,13 @@ export default function Home() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name , StudentID, mode: 'register' }),
+      body: JSON.stringify({ First_Name , StudentID, mode: 'register', Last_Name: 'Smith'}),
     });
 
     if (res.ok) {
+      console.log('Inserted User');
       const data = await res.json();
-      console.log('Inserted User:', data.user);
+      console.log('New User:', data.user);
     } else {
       console.error('Failed to insert user');
     }
@@ -138,7 +153,7 @@ export default function Home() {
                     <input
                         type="text"
                         placeholder="Enter Name"
-                        value={name}
+                        value={First_Name}
                         onChange={(e) => setName(e.target.value)}
                         className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
