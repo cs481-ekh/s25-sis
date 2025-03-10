@@ -5,7 +5,6 @@ services:
     build: .
     ports:
       - "${HOST_PORT:-8081}:3000"
-    # Mount the database directory for persistence so that changes are not lost on container rebuilds
     volumes:
       - ./eis-tracker/database:/eis-tracker/database
     environment:
