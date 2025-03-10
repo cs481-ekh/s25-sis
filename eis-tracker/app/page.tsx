@@ -8,7 +8,10 @@ export default function Home() {
     const [list, setlist] = useState<string[]>([]);
     const [logs, setlogs] = useState<string[]>([]);
     const [First_Name, setName] = useState("");
-    
+
+    //Path to default student image
+    const imagePath = `/blankimage.png`;
+
     interface Student {
         StudentID: string;
         First_Name: string;
@@ -17,7 +20,7 @@ export default function Home() {
     }
 
     const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);    //function for fetching students from db
-    
+
     async function fetchStudents() {
         const res = await fetch('/api/db');
         console.log(loggedInStudents);
@@ -179,12 +182,21 @@ export default function Home() {
                 <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
                 <ul className="list-disc pl-5">
                     {loggedInStudents.map(student => (
-                        <li key={student.StudentID}>
-                            <div><strong>First Name:</strong> {student.First_Name}</div>
-                            <div><strong>Tags:</strong> {student.Tags}</div>
-                            <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
+                        //Possible code when we have folder of student photos:
+                        //const imagePath = `/photos/${student.StudentID}.png`;
+                        <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
+                            <img
+                                src={imagePath}
+                                alt={`${student.First_Name}'s Profile`}
+                                className="w-12 h-12 rounded-full border object-cover"
+                                //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
+                            />
+
+                                <div><strong>First Name:</strong> {student.First_Name}</div>
+                                <div><strong>Tags:</strong> {student.Tags}</div>
+                                <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
                         </li>
-                    ))}
+                        ))}
                 </ul>
             </div>
         </div>
