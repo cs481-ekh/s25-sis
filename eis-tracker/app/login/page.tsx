@@ -1,13 +1,26 @@
 'use client';
 
 import React from "react";
-import Link from "next/link";
 
 export default function Page() {
+    const [id, setId] = React.useState<string>("");
 
+    const handleLogin = async (e: React.FormEvent, link: string) => {
+        e.preventDefault();
 
-    const handleLogin = async () => {
-        await fetch('/api/login', { method: 'POST' }); // Calls API to set the cookie
+        console.log(id);
+
+        const response = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+        });
+
+        if (response.ok) {
+            window.location.href = link; // Redirect after login
+        } else {
+            console.error("Invalid credentials");
+        }
     };
 
 
@@ -18,24 +31,26 @@ export default function Page() {
               <input
                   type="text"
                   placeholder="Enter Admin ID"
+                  value={id}
+                  onChange={(e) => setId(e.target.value)}
                   className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <Link href="/" passHref>
-                  <button
-                    className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                    onClick={handleLogin}
-                  >
-                    Login
-                  </button>
-              </Link>
-              <Link href="/admin" passHref>
-                  <button
-                      className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                      onClick={handleLogin}
-                  >
-                      Admin
-                  </button>
-              </Link>
+
+              <button
+                className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                onClick={(e) => handleLogin(e, "/")}
+              >
+                Login
+              </button>
+
+
+              <button
+                  className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                  onClick={(e) => handleLogin(e, "/admin")}
+              >
+                  Admin
+              </button>
+
 
           </div>
       </div>
