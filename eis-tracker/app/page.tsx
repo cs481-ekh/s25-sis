@@ -237,51 +237,30 @@ export default function Home() {
                         </ul>
                     </div>
                 </div>
-                <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
-                    <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
-                    <ul className="list-disc pl-5">
-                        {loggedInStudents.map(student => (
-                            //Possible code when we have folder of student photos:
-                            //const imagePath = `/photos/${student.StudentID}.png`;
-                            <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
-                                <img
-                                    src={imagePath}
-                                    alt={`${student.First_Name}'s Profile`}
-                                    className="w-12 h-12 rounded-full border object-cover"
-                                    //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
-                                />
-
-                                    <div><strong>First Name:</strong> {student.First_Name}</div>
-                                    <div><strong>Tags:</strong> {student.Tags}</div>
-                                    <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
-                            </li>
-                            ))}
-                    </ul>
-                </div>
-            </div>
-            <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
+              <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
                 <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
                 <ul className="list-disc pl-5">
-                    {loggedInStudents.map(student => (
-                        //Possible code when we have folder of student photos:
-                        //const imagePath = `/photos/${student.StudentID}.png`;
-                        <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
-                            <img
-                                src={imagePath}
-                                alt={`${student.First_Name}'s Profile`}
-                                className="w-12 h-12 rounded-full border object-cover"
-                                //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
-                            />
-                                <div><strong>First Name:</strong> {student.First_Name}</div>
-                                <div>
-                                    <strong>Tags:</strong>
-                                    {/* Convert Tags to a number and render the corresponding colored boxes */}
-                                    {renderTags(parseInt(student.Tags))}
-                                </div>
-                                <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
-                        </li>
-                    ))}
+                  {loggedInStudents.map(student => (
+                    //Possible code when we have folder of student photos:
+                    //const imagePath = `/photos/${student.StudentID}.png`;
+                    <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
+                      <img
+                        src={imagePath}
+                        alt={`${student.First_Name}'s Profile`}
+                        className="w-12 h-12 rounded-full border object-cover"
+                        //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
+                      />
+                      <div><strong>First Name:</strong> {student.First_Name}</div>
+                      <div>
+                        <strong>Tags:</strong>
+                        {/* Convert Tags to a number and render the corresponding colored boxes */}
+                        {renderTags(parseInt(student.Tags))}
+                      </div>
+                      <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
+                    </li>
+                  ))}
                 </ul>
+              </div>
             </div>
         </div>
     );
