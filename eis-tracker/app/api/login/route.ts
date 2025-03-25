@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { serialize } from "cookie";
 
 export async function POST(req: Request) {
-    const { id } = await req.json();
+    const { id, pass } = await req.json();
 
     // Simple authentication check (Replace with real logic)
-    if (id === "999999999") {
+    if (id === "999999999" && pass === "admin123") {
         const headers = new Headers();
         headers.append(
             "Set-Cookie",
