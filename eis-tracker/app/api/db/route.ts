@@ -153,11 +153,11 @@ export async function POST(request: Request) {
 
     if (data.Tags === undefined) {
       // Insert the data into the users table
-      db.prepare('INSERT INTO users (StudentID, First_Name, Last_Name) VALUES (?,?,?)').run(data.StudentID, data.First_Name, data.Last_Name);
+      db.prepare('INSERT INTO users (StudentID, First_Name, Last_Name) VALUES (?,?,?)').run(Number(data.StudentID), data.First_Name, data.Last_Name);
       const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
       return new Response(JSON.stringify({ user }), { status: 200 });
     } else {
-      db.prepare('INSERT INTO users (StudentID, First_Name, Last_Name, Tags) VALUES (?,?,?,?)').run(data.StudentID, data.First_Name, data.Last_Name, data.Tags);
+      db.prepare('INSERT INTO users (StudentID, First_Name, Last_Name, Tags) VALUES (?,?,?,?)').run(Number(data.StudentID), data.First_Name, data.Last_Name, Number(data.Tags));
       const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
       return new Response(JSON.stringify({ user }), { status: 200 });
     }
