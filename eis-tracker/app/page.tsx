@@ -124,7 +124,7 @@ export default function Home() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ First_Name , StudentID, mode: 'register', Last_Name: 'Smith'}),
+      body: JSON.stringify({ First_Name , StudentID, mode: 'register',Tags: 5, Last_Name: 'Smith'}),
     });
 
     if (res.ok) {
@@ -135,6 +135,52 @@ export default function Home() {
       console.error('Failed to insert user');
     }
   };
+
+    // Helper function to render colored tag boxes
+    const renderTags = (tags: number) => {
+        const tagElements = [];
+        // Bit 0 (1) - White
+        if (tags & 1) {
+            tagElements.push(
+                <div
+                    key="white"
+                    className="w-4 h-4 bg-white border border-gray-400 rounded mr-1"
+                    title="White"
+                />
+            );
+        }
+        // Bit 1 (2) - Blue
+        if (tags & 2) {
+            tagElements.push(
+                <div
+                    key="blue"
+                    className="w-4 h-4 bg-blue-500 border border-gray-400 rounded mr-1"
+                    title="Blue"
+                />
+            );
+        }
+        // Bit 2 (4) - Green
+        if (tags & 4) {
+            tagElements.push(
+                <div
+                    key="green"
+                    className="w-4 h-4 bg-green-500 border border-gray-400 rounded mr-1"
+                    title="Green"
+                />
+            );
+        }
+        // Bit 3 (8) - Orange
+        if (tags & 8) {
+            tagElements.push(
+                <div
+                    key="orange"
+                    className="w-4 h-4 bg-orange-500 border border-gray-400 rounded mr-1"
+                    title="Orange"
+                />
+            );
+        }
+        return <div className="flex">{tagElements}</div>;
+    };
 
     return (
         <div className="flex min-h-screen">
@@ -191,12 +237,15 @@ export default function Home() {
                                 className="w-12 h-12 rounded-full border object-cover"
                                 //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
                             />
-
                                 <div><strong>First Name:</strong> {student.First_Name}</div>
-                                <div><strong>Tags:</strong> {student.Tags}</div>
+                                <div>
+                                    <strong>Tags:</strong>
+                                    {/* Convert Tags to a number and render the corresponding colored boxes */}
+                                    {renderTags(parseInt(student.Tags))}
+                                </div>
                                 <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
                         </li>
-                        ))}
+                    ))}
                 </ul>
             </div>
         </div>
