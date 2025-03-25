@@ -2,6 +2,7 @@
 
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function Home() {
     const [StudentID, setStudentID] = useState("");
@@ -183,44 +184,78 @@ export default function Home() {
     };
 
     return (
-        <div className="flex min-h-screen">
-            <div className="flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 bg-gray-100">
-                <h1 className="text-2xl font-bold mb-4">Welcome to the EIS</h1>
-                <p className="mb-6 text-gray-700">Please enter your Student ID to log in:</p>
+        <div className="flex min-h-screen flex-col">
+            {/* Navigation Bar */}
+            <nav className="bg-blue-500 p-4 flex items-center">
+                {/* Logo */}
+                <img src="/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
 
-                <div className="flex flex-col sm:flex-row gap-4 items-center">
-                    <input
-                        type="text"
-                        placeholder="Enter Student ID"
-                        value={StudentID}
-                        onChange={(e) => setStudentID(e.target.value)}
-                        className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Enter Name"
-                        value={First_Name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                        onClick={registerUser}
-                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                    >
-                        Register
-                    </button>
-                    <button
-                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={() => loginButton()}
-                    >
-                        Login
-                    </button>
+                {/* Title and Navigation Link */}
+                <div className="flex items-center justify-between w-full">
+                    <h1 className="text-white text-2xl font-bold">EIS Dashboard</h1>
+                    <Link href="/login" className="text-white text-lg hover:underline">Back to Login</Link>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-8 items-center m-4">
-                    <ul>
-                        {logs.map((log, index) => (
-                            <li key={index}>{log}</li>
-                        ))}
+            </nav>
+            <div className="flex min-h-screen flex-row">
+                <div className="flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 bg-gray-100">
+                    <h1 className="text-2xl font-bold mb-4">Welcome to the EIS</h1>
+                    <p className="mb-6 text-gray-700">Please enter your Student ID to log in:</p>
+
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
+                        <input
+                            type="text"
+                            placeholder="Enter Student ID"
+                            value={StudentID}
+                            onChange={(e) => setStudentID(e.target.value)}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Enter Name"
+                            value={First_Name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                            onClick={registerUser}
+                            className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        >
+                            Register
+                        </button>
+                        <button
+                            className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                            onClick={() => loginButton()}
+                        >
+                            Login
+                        </button>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-8 items-center m-4">
+                        <ul>
+                            {logs.map((log, index) => (
+                                <li key={index}>{log}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+                <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
+                    <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
+                    <ul className="list-disc pl-5">
+                        {loggedInStudents.map(student => (
+                            //Possible code when we have folder of student photos:
+                            //const imagePath = `/photos/${student.StudentID}.png`;
+                            <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
+                                <img
+                                    src={imagePath}
+                                    alt={`${student.First_Name}'s Profile`}
+                                    className="w-12 h-12 rounded-full border object-cover"
+                                    //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
+                                />
+
+                                    <div><strong>First Name:</strong> {student.First_Name}</div>
+                                    <div><strong>Tags:</strong> {student.Tags}</div>
+                                    <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
+                            </li>
+                            ))}
                     </ul>
                 </div>
             </div>

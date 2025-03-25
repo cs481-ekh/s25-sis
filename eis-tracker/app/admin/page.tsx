@@ -1,6 +1,7 @@
 'use client';
 
 import React, {useEffect, useState} from "react";
+import Link from "next/link";
 
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
@@ -108,81 +109,92 @@ export default function Page() {
     });
 
     return (
-        <div className="flex flex-col items-start justify-start min-h-screen p-8 sm:p-20 bg-gray-100 space-y-4">
+        <div className="flex min-h-screen flex-col">
+            <nav className="bg-blue-500 p-4 flex items-center">
+                {/* Logo */}
+                <img src="/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
 
-            <input
-                type="text"
-                placeholder="Enter User ID"
-                value={StudentID}
-                onChange={(e) => setStudentID(e.target.value)}
-                className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-                type="text"
-                placeholder="Enter Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none"
-            />
-            <label>
+                {/* Title and Navigation Link */}
+                <div className="flex items-center justify-between w-full">
+                    <h1 className="text-white text-2xl font-bold">EIS Dashboard</h1>
+                    <Link href="/login" className="text-white text-lg hover:underline">Back to Login</Link>
+                </div>
+            </nav>
+            <div className="flex flex-col items-start justify-start min-h-screen p-8 sm:p-20 bg-gray-100 space-y-4">
+
                 <input
-                    type="checkbox"
-                    checked={white}
-                    onChange={() => setWhite(!white)}
-                /> White Tag
-            </label>
-            <label>
+                    type="text"
+                    placeholder="Enter User ID"
+                    value={StudentID}
+                    onChange={(e) => setStudentID(e.target.value)}
+                    className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
                 <input
-                    type="checkbox"
-                    checked={blue}
-                    onChange={() => setBlue(!blue)}
-                /> Blue Tag
-            </label>
-            <label>
-                <input
-                    type="checkbox"
-                    checked={green}
-                    onChange={() => setGreen(!green)}
-                /> Green Tag
-            </label>
-            <label>
-                <input
-                    type="checkbox"
-                    checked={orange}
-                    onChange={() => setOrange(!orange)}
-                /> Orange Tag
-            </label>
-            <label>
-                <input
-                    type="checkbox"
-                    checked={admin}
-                    onChange={() => setAdmin(!admin)}
-                /> Admin User
-            </label>
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-                <button
-                    className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                    onClick={() => register()}
+                    type="text"
+                    placeholder="Enter Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none"
+                />
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={white}
+                        onChange={() => setWhite(!white)}
+                    /> White Tag
+                </label>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={blue}
+                        onChange={() => setBlue(!blue)}
+                    /> Blue Tag
+                </label>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={green}
+                        onChange={() => setGreen(!green)}
+                    /> Green Tag
+                </label>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={orange}
+                        onChange={() => setOrange(!orange)}
+                    /> Orange Tag
+                </label>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={admin}
+                        onChange={() => setAdmin(!admin)}
+                    /> Admin User
+                </label>
+                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    <button
+                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        onClick={() => register()}
+                    >
+                        Register User
+                    </button>
+                    <button
+                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        onClick={() => register()}
+                    >
+                        Update User
+                    </button>
+                </div>
+
+            <button
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                    className="mt-6 px-6 py-3 bg-green-500 text-white text-lg rounded-md hover:bg-green-600 transition disabled:opacity-50"
                 >
-                    Register User
+                    {isDownloading ? "Downloading..." : "Download Logs"}
                 </button>
-                <button
-                    className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                    onClick={() => register()}
-                >
-                    Update User
-                </button>
+
             </div>
-
-	    <button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="mt-6 px-6 py-3 bg-green-500 text-white text-lg rounded-md hover:bg-green-600 transition disabled:opacity-50"
-            >
-                {isDownloading ? "Downloading..." : "Download Logs"}
-            </button>
-
         </div>
-
     )
 }
