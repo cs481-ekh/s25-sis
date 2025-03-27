@@ -5,13 +5,15 @@ import React from "react";
 export default function Page() {
     const [id, setId] = React.useState<string>("");
     const [pass, setPass] = React.useState<string>("");
+    const baseUrl = process.env.API_URL_ROOT ?? "/api/";
+
 
     const handleLogin = async (e: React.FormEvent, link: string) => {
         e.preventDefault();
 
         console.log(id);
 
-        const response = await fetch("/api/login", {
+        const response = await fetch(`${baseUrl}login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id, pass }),
