@@ -13,6 +13,9 @@ export default function Page() {
     const [admin, setAdmin] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
 
+    const baseUrl = process.env.API_URL_ROOT ?? "/api/";
+
+
     const register = async () => {
         let res = await fetch('', {
             method: 'POST',
@@ -35,7 +38,7 @@ export default function Page() {
         if (orange) {tags |= 0b1000}
         if (admin) {tags |= 0b10000}
 
-        res = await fetch('/api/db', {
+        res = await fetch(`${baseUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -54,7 +57,7 @@ export default function Page() {
         setIsDownloading(true);
         try {
             // Fetch the CSV export link from the API
-            const response = await fetch("/api/export");
+            const response = await fetch(`${baseUrl}export`);
             const data = await response.json();
 
             if (response.ok && data.downloadUrl) {
@@ -80,7 +83,7 @@ export default function Page() {
     useEffect(() => {
         // Make a fetch request to the API route
         async function fetchData() {
-            const res = await fetch('/api/db');
+            const res = await fetch(`${baseUrl}db`);
             if (res.ok) {
                 const data = await res.json();
                 console.log('User Database Content:', data.users); // Logs the users data to the console
@@ -92,7 +95,7 @@ export default function Page() {
 
         async function createTable() {
             try {
-                const res = await fetch('/api/db', { method: 'GET' });
+                const res = await fetch(`${baseUrl}db`, { method: 'GET' });
                 if (res.ok) {
                     const data = await res.json();
                     console.log('Database initialized:', data);
