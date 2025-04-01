@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function Page() {
@@ -12,9 +12,9 @@ export default function Page() {
     const [orange, setOrange] = useState(false);
     const [admin, setAdmin] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
-
+    const [file, setFile] = useState<File | null>(null); // New state for file
+    const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
     const baseUrl = process.env.API_URL_ROOT ?? "/api/";
-
 
     const register = async () => {
         let res = await fetch('', {
@@ -22,7 +22,7 @@ export default function Page() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ name , StudentID, mode: 'register' }),
+            body: JSON.stringify({ name, StudentID, mode: 'register' }),
         });
 
         if (res.ok) {
@@ -32,11 +32,11 @@ export default function Page() {
             console.error('Failed to insert user');
         }
         let tags = 0
-        if (white) {tags |= 0b1}
-        if (blue) {tags |= 0b10}
-        if (green) {tags |= 0b100}
-        if (orange) {tags |= 0b1000}
-        if (admin) {tags |= 0b10000}
+        if (white) { tags |= 0b1 }
+        if (blue) { tags |= 0b10 }
+        if (green) { tags |= 0b100 }
+        if (orange) { tags |= 0b1000 }
+        if (admin) { tags |= 0b10000 }
 
         res = await fetch(`${baseUrl}db`, {
             method: 'POST',
@@ -68,16 +68,53 @@ export default function Page() {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-            } 
-	    else {
+            }
+            else {
                 alert("Failed to download logs.");
             }
-        } 
+        }
         catch (error) {
             console.error("Error downloading logs:", error);
             alert("An error occurred while downloading logs.");
         }
         setIsDownloading(false);
+    };
+
+    // Handle the file input change
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setFile(e.target.files[0]);
+        }
+    };
+
+    // Handle file import
+    const handleFileUpload = async () => {
+        if (!file) {
+            alert("Please select a file to import.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch(`${baseUrl}import`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setUploadMessage("File imported successfully!");
+                console.log(data); // Log the extracted data
+            } else {
+                setUploadMessage("Error importing file.");
+                console.error("Error importing file.");
+            }
+        } catch (error) {
+            setUploadMessage("Error uploading file.");
+            console.error("Error uploading file:", error);
+        }
     };
 
     useEffect(() => {
@@ -189,14 +226,29 @@ export default function Page() {
                     </button>
                 </div>
 
-            <button
+                {/* File Upload Section */}
+                <div className="mt-6">
+                    <input
+                        type="file"
+                        onChange={handleFileChange}
+                        className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                        className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        onClick={handleFileUpload}
+                    >
+                        Upload CSV
+                    </button>
+                    {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
+                </div>
+
+                <button
                     onClick={handleDownload}
                     disabled={isDownloading}
                     className="mt-6 px-6 py-3 bg-green-500 text-white text-lg rounded-md hover:bg-green-600 transition disabled:opacity-50"
                 >
                     {isDownloading ? "Downloading..." : "Download Logs"}
                 </button>
-
             </div>
         </div>
     )
