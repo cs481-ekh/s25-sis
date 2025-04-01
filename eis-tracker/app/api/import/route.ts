@@ -1,20 +1,21 @@
-import { IncomingMessage, ServerResponse } from 'http';
-import formidable from 'formidable';
+import { NextRequest, NextResponse } from 'next/server';
+import formidable, { Fields, Files } from 'formidable';
 import * as fs from 'fs';
 import csv from 'csv-parser';
+import { Readable } from 'stream';
 
 // Define the structure of the data we're interested in
 interface StudentData {
-    firstName: string;
-    lastName: string;
-    StudentID: string;  // Renamed from SISUserID to StudentID
-    blueTag: boolean;
-    greenTag: boolean;
-    orangeTag: boolean;
-    whiteTag: boolean;  // This represents the Training Affirmation (Required) (228040)
+  firstName: string;
+  lastName: string;
+  StudentID: string;
+  blueTag: boolean;
+  greenTag: boolean;
+  orangeTag: boolean;
+  whiteTag: boolean;
 }
 
-// Disable Next.js's default body parsing
+// Disable Next.js's default body parsing for file uploads
 export const config = {
   api: {
     bodyParser: false,
@@ -22,23 +23,23 @@ export const config = {
 };
 
 // Function to extract relevant data from CSV
-const extractDataFromCSV = (filePath: string): Promise<StudentData[]> => {
-  return new Promise((resolve, reject) => {
-    const results: StudentData[] = [];
-    let firstRowProcessed = false;
+const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
+  const results: StudentData[] = [];
+  let firstRowProcessed = false;
 
-    fs.createReadStream(filePath)
-      .pipe(csv())
+  // Using a Promise wrapper around the stream process
+  return new Promise((resolve, reject) => {
+    const stream = fs.createReadStream(filePath).pipe(csv());
+
+    stream
       .on('data', (row: any) => {
-        // Skip the first row (possible points row)
         if (!firstRowProcessed) {
           firstRowProcessed = true;
-          return;  // Skip the first row
+          return; // Skip the first row
         }
 
-        // Skip the row for the test student where the 'Student' column equals 'Student, Test'
         if (row['Student'] === 'Student, Test') {
-          return;  // Skip the test student row
+          return; // Skip the test student row
         }
 
         const fullName = row['Student'];
@@ -47,60 +48,77 @@ const extractDataFromCSV = (filePath: string): Promise<StudentData[]> => {
         const studentData: StudentData = {
           firstName: firstName || '',
           lastName: lastName || '',
-          StudentID: row['SIS User ID'] || '',  // Renamed field
+          StudentID: row['SIS User ID'] || '',
           blueTag: row['BLUE TAG  (228139)'] === '1',
           greenTag: !!row['GREEN TAG (293966)'] && !isNaN(Number(row['GREEN TAG (293966)'])),
           orangeTag: !!row['ORANGE TAG (294239)'] && !isNaN(Number(row['ORANGE TAG (294239)'])),
-          whiteTag: row['Training Affirmation (Required)  (228040)'] === '100'
+          whiteTag: row['Training Affirmation (Required)  (228040)'] === '100',
         };
 
         results.push(studentData);
       })
       .on('end', () => {
-        // Remove the last row after processing all rows
-        results.pop();  // This removes the last element (test student)
-        resolve(results);
+        results.pop(); // Remove the last test student
+        resolve(results); // Resolve the promise with the final results
       })
       .on('error', (err) => {
-        reject(err);
+        reject(err); // Reject the promise in case of error
       });
   });
 };
 
-const handler = (req: IncomingMessage, res: ServerResponse) => {
-  if (req.method === 'POST') {
-    const form = new formidable.IncomingForm();
+// Handle the POST request for file upload and CSV processing
+export async function POST(req: NextRequest) {
+  // Create an incoming stream using req.body
+  const form = formidable({
+    keepExtensions: true,  // Keep original file extensions
+    uploadDir: './tmp',    // Temporary directory for file upload
+  });
 
-    form.parse(req, async (err, fields, files) => {
+  // Handle incoming request body as a stream
+  const body = await req.arrayBuffer(); // Get the body as an array buffer (which is a stream)
+  const bufferStream = Readable.from([body]); // Convert array buffer to a readable stream
+
+  // Create a mock IncomingMessage object
+  const mockReq = new Readable() as any;
+  mockReq.headers = req.headers;
+  mockReq.method = req.method;
+  mockReq.url = req.url;
+  mockReq._read = () => {}; // No-op _read implementation
+  mockReq.push(body);
+  mockReq.push(null); // Signal end of stream
+
+  return new Promise<NextResponse>((resolve, reject) => {
+    form.parse(mockReq, async (err, fields, files) => {
       if (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Error parsing the file' }));
-        return;
+        return reject(new Response(JSON.stringify({ message: 'Error reading the file' }), { status: 501 }));
       }
 
-      // Assuming the file input is named 'file' in the form
+      // Check if file exists in the form data
       if (!files.file || !files.file[0]) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'No file uploaded' }));
-        return;
+        return reject(new Response(JSON.stringify({ message: 'No file uploaded' }), { status: 400 }));
       }
+
       const file = files.file[0];
       const filePath = file.filepath;
 
       try {
         const data = await extractDataFromCSV(filePath);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(data));  // Return the extracted data
+        return resolve(new NextResponse(JSON.stringify(data), { status: 200 }));
       } catch (error) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Error processing the file' }));
+        return reject(new Response(JSON.stringify({ message: 'Error processing the file' }), { status: 502 }));
+
       }
     });
-  } else {
-    // Handle other methods or invalid requests
-    res.writeHead(405, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Method Not Allowed' }));
-  }
-};
+  });
+}
 
-export default handler;
+// Handle other HTTP methods (e.g., GET)
+export async function GET(req: NextRequest) {
+  try {
+    const defaultData = { message: 'This is a GET request, no file uploaded yet.' };
+    return new NextResponse(JSON.stringify(defaultData), { status: 200 });
+  } catch (error) {
+    return new NextResponse('Failed to handle GET request', { status: 500 });
+  }
+}
