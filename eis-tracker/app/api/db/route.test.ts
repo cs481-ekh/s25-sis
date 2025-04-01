@@ -16,8 +16,9 @@ describe('database tests', () => {
             ' Last_Name TEXT,' +
             ' Tags INTEGER NOT NULL DEFAULT 0,' +
             ' Active BOOLEAN NOT NULL DEFAULT FALSE,' +
-            ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE)'
-        ).run();
+            ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE,' +
+            ' Major TEXT DEFAULT NULL)'
+          ).run();
         db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
             ' Time_In INTEGER,' +
             ' Time_Out INTEGER,' +
@@ -276,6 +277,22 @@ describe('database tests', () => {
         expect(res.status).toBe(200);
     })
 
+    test('set_major POST', async () => {
+        const req = new Request(`http://localhost:3000/api/db?`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({database: 'test.db', mode: 'set_major', StudentID: 123456, Major: 'Computer Science'}),
+        });
+
+        const res = await route.POST(req);
+        if(!res)
+            fail();
+        expect(res.status).toBe(200);
+
+    })
+
     test('user with logs DELETE', async () => {
 
         const req = new Request(`http://localhost:3000/api/db?`, {
@@ -309,4 +326,5 @@ describe('database tests', () => {
         // const resBody = await res.json();
         expect(res.status).toBe(200);
     })
+    
 })
