@@ -145,7 +145,7 @@ export default function Home() {
             tagElements.push(
                 <div
                     key="white"
-                    className="w-4 h-4 bg-white border border-gray-400 rounded mr-1"
+                    className="w-6 h-6 bg-white border border-gray-400 rounded mr-1"
                     title="White"
                 />
             );
@@ -155,7 +155,7 @@ export default function Home() {
             tagElements.push(
                 <div
                     key="blue"
-                    className="w-4 h-4 bg-blue-500 border border-gray-400 rounded mr-1"
+                    className="w-6 h-6 bg-blue-500 border border-gray-400 rounded mr-1"
                     title="Blue"
                 />
             );
@@ -165,7 +165,7 @@ export default function Home() {
             tagElements.push(
                 <div
                     key="green"
-                    className="w-4 h-4 bg-green-500 border border-gray-400 rounded mr-1"
+                    className="w-6 h-6 bg-green-500 border border-gray-400 rounded mr-1"
                     title="Green"
                 />
             );
@@ -175,7 +175,7 @@ export default function Home() {
             tagElements.push(
                 <div
                     key="orange"
-                    className="w-4 h-4 bg-orange-500 border border-gray-400 rounded mr-1"
+                    className="w-6 h-6 bg-orange-500 border border-gray-400 rounded mr-1"
                     title="Orange"
                 />
             );
@@ -240,7 +240,7 @@ export default function Home() {
               <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
                 <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
                 <ul className="list-disc pl-5">
-                  {loggedInStudents.map(student => (
+                  {loggedInStudents.filter(student => student.Logged_In).map(student => (
                     //Possible code when we have folder of student photos:
                     //const imagePath = `/photos/${student.StudentID}.png`;
                     <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
@@ -256,7 +256,7 @@ export default function Home() {
                         {/* Convert Tags to a number and render the corresponding colored boxes */}
                         {renderTags(parseInt(student.Tags))}
                       </div>
-                      <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
+                      {/*<div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>*/}
                     </li>
                   ))}
                 </ul>
