@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import formidable, { Fields, Files } from 'formidable';
 import * as fs from 'fs';
 import csv from 'csv-parser';
-import { Readable } from 'stream';
+import path from 'path';
 
 // Define the structure of the data we're interested in
 interface StudentData {
@@ -68,49 +67,51 @@ const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
 };
 
 // Handle the POST request for file upload and CSV processing
-export async function POST(req: NextRequest) {
-  // Create an incoming stream using req.body
-  const form = formidable({
-    keepExtensions: true,  // Keep original file extensions
-    uploadDir: './tmp',    // Temporary directory for file upload
-  });
+// Handle the POST request for file upload and CSV processing
+export async function POST(req: Request) {
 
-  // Handle incoming request body as a stream
-  const body = await req.arrayBuffer(); // Get the body as an array buffer (which is a stream)
-  const bufferStream = Readable.from([body]); // Convert array buffer to a readable stream
+  const formData = await req.formData();
+  const file = formData.get('file');
+  console.log("form data", formData, file);
+  if (!file) {
+    return new Response(JSON.stringify({message: 'Bad upload'}), { status: 500 });
+  }
 
-  // Create a mock IncomingMessage object
-  const mockReq = new Readable() as any;
-  mockReq.headers = req.headers;
-  mockReq.method = req.method;
-  mockReq.url = req.url;
-  mockReq._read = () => {}; // No-op _read implementation
-  mockReq.push(body);
-  mockReq.push(null); // Signal end of stream
+  if (!(file instanceof File)) {
+    return new Response(JSON.stringify({ message: 'Invalid file upload' }), { status: 400 });
+  }
 
-  return new Promise<NextResponse>((resolve, reject) => {
-    form.parse(mockReq, async (err, fields, files) => {
-      if (err) {
-        return reject(new Response(JSON.stringify({ message: 'Error reading the file' }), { status: 501 }));
+  const filePath = `./.tmp/${file.name}`;
+  const buffer = await file.arrayBuffer();
+  // await fs.promises.writeFile(filePath, Buffer.from(buffer));
+
+  const dirPath = path.dirname(filePath);
+  try {
+    await fs.promises.access(dirPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      await fs.promises.mkdir(dirPath, { recursive: true });
+    } else {
+      throw error;
+    }
+  }
+  await fs.promises.writeFile(filePath, Buffer.from(buffer));
+
+  try {
+    const data = await extractDataFromCSV(filePath);
+    try {
+      if(true) { // Set to true to delete the file after processing
+        await fs.promises.unlink(filePath); // Delete the file after processing
+        await fs.promises.rmdir(dirPath, { recursive: true }); // Remove the directory if empty
       }
+    } catch (err) {
+      console.error('Error deleting file:', err);
+    }
+    return new Response(JSON.stringify({data}), { status: 200 });
+  } catch (error) {
+    return new Response(JSON.stringify({message: 'Error processing the file'}), { status: 500 });
 
-      // Check if file exists in the form data
-      if (!files.file || !files.file[0]) {
-        return reject(new Response(JSON.stringify({ message: 'No file uploaded' }), { status: 400 }));
-      }
-
-      const file = files.file[0];
-      const filePath = file.filepath;
-
-      try {
-        const data = await extractDataFromCSV(filePath);
-        return resolve(new NextResponse(JSON.stringify(data), { status: 200 }));
-      } catch (error) {
-        return reject(new Response(JSON.stringify({ message: 'Error processing the file' }), { status: 502 }));
-
-      }
-    });
-  });
+  }
 }
 
 // Handle other HTTP methods (e.g., GET)
