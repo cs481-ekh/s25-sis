@@ -108,18 +108,18 @@ export async function POST(req: Request) {
       console.error('Error deleting file:', err);
     }
     return new Response(JSON.stringify({data}), { status: 200 });
-  } catch (error) {
+  } catch (_error) {
     return new Response(JSON.stringify({message: 'Error processing the file'}), { status: 500 });
 
   }
 }
 
 // Handle other HTTP methods (e.g., GET)
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const defaultData = { message: 'This is a GET request, no file uploaded yet.' };
     return new NextResponse(JSON.stringify(defaultData), { status: 200 });
-  } catch (error) {
+  } catch (_error) {
     return new NextResponse('Failed to handle GET request', { status: 500 });
   }
 }
