@@ -31,7 +31,7 @@ const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
     const stream = fs.createReadStream(filePath).pipe(csv());
 
     stream
-      .on('data', (row: any) => {
+      .on('data', (row: Record<string, string>) => {
         if (!firstRowProcessed) {
           firstRowProcessed = true;
           return; // Skip the first row
@@ -108,18 +108,19 @@ export async function POST(req: Request) {
       console.error('Error deleting file:', err);
     }
     return new Response(JSON.stringify({data}), { status: 200 });
-  } catch (_error) {
-    return new Response(JSON.stringify({message: 'Error processing the file'}), { status: 500 });
+  } catch (error) {
+    return new Response(JSON.stringify({message: 'Error processing the file', error}), { status: 500 });
 
   }
 }
 
 // Handle other HTTP methods (e.g., GET)
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
+    req.body; // use variable to avoid unused error
     const defaultData = { message: 'This is a GET request, no file uploaded yet.' };
     return new NextResponse(JSON.stringify(defaultData), { status: 200 });
-  } catch (_error) {
-    return new NextResponse('Failed to handle GET request', { status: 500 });
+  } catch (error) {
+    return new NextResponse(JSON.stringify({message: 'Failed to handle GET request', error}), { status: 500 });
   }
 }
