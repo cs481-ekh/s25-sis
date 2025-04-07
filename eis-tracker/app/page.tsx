@@ -1,6 +1,5 @@
 "use client";
 
-
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -9,9 +8,12 @@ export default function Home() {
     const [list, setlist] = useState<string[]>([]);
     const [logs, setlogs] = useState<string[]>([]);
     const [First_Name, setName] = useState("");
+    const [idError, setIdError] = useState("");
 
     //Path to default student image
     const imagePath = `/blankimage.png`;
+
+    const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
     interface Student {
         StudentID: string;
@@ -20,10 +22,17 @@ export default function Home() {
         Logged_In: boolean;
     }
 
-    const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);    //function for fetching students from db
+    const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
 
+    // Validate StudentID format
+    const validateStudentID = (id: string) => {
+        const regex = /^\d{9}$/;
+        return regex.test(id);
+    };
+
+    //function for fetching students from db
     async function fetchStudents() {
-        const res = await fetch('/api/db');
+        const res = await fetch(`${baseApiUrl}db`);
         console.log(loggedInStudents);
 
         if (res.ok) {
@@ -35,12 +44,18 @@ export default function Home() {
     }
 
     const loginButton = async () => {
+        if (!validateStudentID(StudentID)) {
+            setIdError("Student ID must be exactly 9 digits (0-9)");
+            return;
+        }
+        setIdError("");
+        
         const d = new Date().toLocaleString("en-US");
         let newList;
         if (!list.includes(StudentID)) {
             newList = list.concat(StudentID);
             setlogs((logs) => [...logs, `${StudentID} logged in at ${d}`]);
-            const res = await fetch('/api/db', {
+            const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -58,7 +73,7 @@ export default function Home() {
         else {
             newList = list.filter((item) => item !== StudentID );
             setlogs((prevLogs) => [...prevLogs, `${StudentID} logged out at ${d}`]);
-            const res = await fetch('/api/db', {
+            const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -80,62 +95,66 @@ export default function Home() {
         await fetchStudents();
     }
 
-  useEffect(() => {
-    // Make a fetch request to the API route
-    async function fetchData() {
-        const res = await fetch('/api/db');
-        if (res.ok) {
-          const data = await res.json();
-          console.log('User Database Content:', data.users); // Logs the users data to the console
-          console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
-        } else {
-          console.error('Failed to fetch data');
+    useEffect(() => {
+        // Make a fetch request to the API route
+        async function fetchData() {
+            const res = await fetch(`${baseApiUrl}db`);
+            if (res.ok) {
+                const data = await res.json();
+                console.log('User Database Content:', data.users); // Logs the users data to the console
+                console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
+            } else {
+                console.error('Failed to fetch data');
+            }
         }
-    }
-  async function createTable() {
-      try {
-          const res = await fetch('/api/db', { method: 'GET' });
-          if (res.ok) {
-              const data = await res.json();
-              console.log('Database initialized:', data);
-              await fetchStudents(); // Fetch users after database creation
-          } else {
-              console.error('Failed to initialize database');
-          }
-      } catch (error) {
-          console.error('Error creating database:', error);
-      }
-  }
+        async function createTable() {
+            try {
+                const res = await fetch(`${baseApiUrl}db`, { method: 'GET' });
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log('Database initialized:', data);
+                    await fetchStudents(); // Fetch users after database creation
+                } else {
+                    console.error('Failed to initialize database');
+                }
+            } catch (error) {
+                console.error('Error creating database:', error);
+            }
+        }
 
-  // Initialize database on mount
-  createTable();
-    fetchData();
-  }, []);
+        // Initialize database on mount
+        createTable();
+        fetchData();
+    }, []);
 
     //updates every time 'list' gets changed
     useEffect(() => {
         fetchStudents();
     }, [list]);
 
+    const registerUser = async () => {
+        if (!validateStudentID(StudentID)) {
+            setIdError("Student ID must be exactly 9 digits (0-9)");
+            return;
+        }
+        setIdError("");
+        
+        const res = await fetch(`${baseApiUrl}db`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ First_Name , StudentID, mode: 'register',Tags: 5, Last_Name: 'Smith'}),
+        });
 
-
-  const registerUser = async () => {
-    const res = await fetch('/api/db', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ First_Name , StudentID, mode: 'register',Tags: 5, Last_Name: 'Smith'}),
-    });
-
-    if (res.ok) {
-      console.log('Inserted User');
-      const data = await res.json();
-      console.log('New User:', data.user);
-    } else {
-      console.error('Failed to insert user');
-    }
-  };
+        if (res.ok) {
+            console.log('Inserted User');
+            const data = await res.json();
+            console.log('New User:', data.user);
+        } else {
+            console.error('Failed to insert user');
+        }
+    };
 
     // Helper function to render colored tag boxes
     const renderTags = (tags: number) => {
@@ -145,7 +164,7 @@ export default function Home() {
             tagElements.push(
                 <div
                     key="white"
-                    className="w-4 h-4 bg-white border border-gray-400 rounded mr-1"
+                    className="w-6 h-6 bg-white border border-gray-400 rounded mr-1"
                     title="White"
                 />
             );
@@ -155,7 +174,7 @@ export default function Home() {
             tagElements.push(
                 <div
                     key="blue"
-                    className="w-4 h-4 bg-blue-500 border border-gray-400 rounded mr-1"
+                    className="w-6 h-6 bg-blue-500 border border-gray-400 rounded mr-1"
                     title="Blue"
                 />
             );
@@ -165,7 +184,7 @@ export default function Home() {
             tagElements.push(
                 <div
                     key="green"
-                    className="w-4 h-4 bg-green-500 border border-gray-400 rounded mr-1"
+                    className="w-6 h-6 bg-green-500 border border-gray-400 rounded mr-1"
                     title="Green"
                 />
             );
@@ -175,7 +194,7 @@ export default function Home() {
             tagElements.push(
                 <div
                     key="orange"
-                    className="w-4 h-4 bg-orange-500 border border-gray-400 rounded mr-1"
+                    className="w-6 h-6 bg-orange-500 border border-gray-400 rounded mr-1"
                     title="Orange"
                 />
             );
@@ -202,13 +221,24 @@ export default function Home() {
                     <p className="mb-6 text-gray-700">Please enter your Student ID to log in:</p>
 
                     <div className="flex flex-col sm:flex-row gap-4 items-center">
-                        <input
-                            type="text"
-                            placeholder="Enter Student ID"
-                            value={StudentID}
-                            onChange={(e) => setStudentID(e.target.value)}
-                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        <div className="flex flex-col">
+                            <input
+                                type="text"
+                                placeholder="Enter Student ID"
+                                value={StudentID}
+                                onChange={(e) => {
+                                    setStudentID(e.target.value);
+                                    if (!validateStudentID(e.target.value)) {
+                                        setIdError("Student ID must be exactly 9 digits (0-9)");
+                                    } else {
+                                        setIdError("");
+                                    }
+                                }}
+                                className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                maxLength={9}
+                            />
+                            {idError && <span className="text-red-500 text-sm mt-1">{idError}</span>}
+                        </div>
                         <input
                             type="text"
                             placeholder="Enter Name"
@@ -218,13 +248,19 @@ export default function Home() {
                         />
                         <button
                             onClick={registerUser}
-                            className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                            disabled={!validateStudentID(StudentID)}
+                            className={`px-6 py-3 text-white text-lg rounded-md transition ${
+                                validateStudentID(StudentID) ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-400 cursor-not-allowed"
+                            }`}
                         >
                             Register
                         </button>
                         <button
-                            className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                            className={`px-6 py-3 text-white text-lg rounded-md transition ${
+                                validateStudentID(StudentID) ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-400 cursor-not-allowed"
+                            }`}
                             onClick={() => loginButton()}
+                            disabled={!validateStudentID(StudentID)}
                         >
                             Login
                         </button>
@@ -237,30 +273,38 @@ export default function Home() {
                         </ul>
                     </div>
                 </div>
-              <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
-                <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
-                <ul className="list-disc pl-5">
-                  {loggedInStudents.map(student => (
-                    //Possible code when we have folder of student photos:
-                    //const imagePath = `/photos/${student.StudentID}.png`;
-                    <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
-                      <img
-                        src={imagePath}
-                        alt={`${student.First_Name}'s Profile`}
-                        className="w-12 h-12 rounded-full border object-cover"
-                        //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
-                      />
-                      <div><strong>First Name:</strong> {student.First_Name}</div>
-                      <div>
-                        <strong>Tags:</strong>
-                        {/* Convert Tags to a number and render the corresponding colored boxes */}
-                        {renderTags(parseInt(student.Tags))}
-                      </div>
-                      <div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
+                    <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
+                    <ul className="list-disc pl-5">
+                        {loggedInStudents.filter(student => student.Logged_In).map(student => {
+                            // Build the path to the student's image
+                            const studentImagePath = `/photos/${student.StudentID}.png`;
+
+                            return (
+                                <li key={student.StudentID}
+                                    className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
+                                    <img
+                                        src={studentImagePath}
+                                        alt={imagePath}
+                                        className="w-12 h-12 rounded-full border object-cover"
+                                        // onError={(e) => {
+                                        //     // Prevent further onError calls after setting the fallback
+                                        //     e.currentTarget.onerror = null;
+                                        //     e.currentTarget.src = '/blankimage.png';
+                                        // }}
+                                    />
+                                    <div>
+                                        <strong>First Name:</strong> {student.First_Name}
+                                    </div>
+                                    <div>
+                                        <strong>Tags:</strong>
+                                        {renderTags(parseInt(student.Tags))}
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
             </div>
         </div>
     );

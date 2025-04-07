@@ -43,3 +43,6 @@ next-env.d.ts
 # database
 /database/*
 !/database/.gitkeep
+
+# logs
+/public/logs.csv

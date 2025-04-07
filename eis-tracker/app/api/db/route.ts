@@ -81,7 +81,8 @@ export async function GET(request: Request) {
       ' Last_Name TEXT,' +
       ' Tags INTEGER NOT NULL DEFAULT 0,' +
       ' Active BOOLEAN NOT NULL DEFAULT FALSE,' +
-      ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE)'
+      ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE,' +
+      ' Major TEXT DEFAULT NULL)'
     ).run();
     db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
       ' Time_In INTEGER,' +
@@ -123,11 +124,15 @@ export async function GET(request: Request) {
  *   - `register`: Inserts a new user into the `users` table.
  *   - `login`: Updates the user to active and logs the action in the `logs` table.
  *   - `logout`: Marks the user as inactive and logs the logout time in the `logs` table.
+ *   - `edit_tags`: Updates the tags of a user in the `users` table.
+ *   - `set_major`: Updates the major of a user in the `users` table.
  *   - `MANUAL`: Executes a custom query in the specified database with limited error checking (use cautiously). The `value` field should contain a query string.
  * @param values - a number of additional parameters dependent on `mode` the names of which are exactly:
  *   - `register`: StudentID, First_Name, Last_Name, Tags(optional) - the user to be inserted.
  *   - `login`: StudentID - the user to log in.
  *   - `logout`: StudentID - the user to log out.
+ *   - `edit_tags`: StudentID, Tags - the user to be updated.
+ *   - `set_major`: StudentID, Major - the user to be updated.
  *   - `MANUAL`: sql - the SQL statement to be executed.
  * @returns {Response} Returns a response object containing the result from the database
  *   - `status`: `200` if the operation was successful.
@@ -201,6 +206,16 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
     }
     db.prepare('UPDATE users SET Tags = ? WHERE StudentID = ?').run(data.Tags, data.StudentID);
+    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+    return new Response(JSON.stringify({ user }), { status: 200 });
+  } else if(data.mode === 'set_major'){
+    if (data.StudentID === undefined || data.Major === undefined) {
+      return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
+    }
+    if (data.Major === '' || data.StudentID === '') {
+      return new Response(JSON.stringify({ message: 'Empty required fields' }), { status: 400 });
+    }
+    db.prepare('UPDATE users SET Major = ? WHERE StudentID = ?').run(data.Major, data.StudentID);
     const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
     return new Response(JSON.stringify({ user }), { status: 200 });
   } else {

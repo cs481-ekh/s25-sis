@@ -14,7 +14,7 @@ export default function Page() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [file, setFile] = useState<File | null>(null); // New state for file
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
-    const baseUrl = process.env.API_URL_ROOT ?? "/api/";
+    const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
     const register = async () => {
         let res = await fetch('', {
@@ -38,7 +38,7 @@ export default function Page() {
         if (orange) { tags |= 0b1000 }
         if (admin) { tags |= 0b10000 }
 
-        res = await fetch(`${baseUrl}db`, {
+        res = await fetch(`${baseApiUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ export default function Page() {
         setIsDownloading(true);
         try {
             // Fetch the CSV export link from the API
-            const response = await fetch(`${baseUrl}export`);
+            const response = await fetch(`${baseApiUrl}export`);
             const data = await response.json();
 
             if (response.ok && data.downloadUrl) {
@@ -98,7 +98,7 @@ export default function Page() {
         formData.append('file', file);
 
         try {
-            const res = await fetch(`${baseUrl}import`, {
+            const res = await fetch(`${baseApiUrl}import`, {
                 method: 'POST',
                 body: formData,
             });
@@ -120,7 +120,7 @@ export default function Page() {
     useEffect(() => {
         // Make a fetch request to the API route
         async function fetchData() {
-            const res = await fetch(`${baseUrl}db`);
+            const res = await fetch(`${baseApiUrl}db`);
             if (res.ok) {
                 const data = await res.json();
                 console.log('User Database Content:', data.users); // Logs the users data to the console
@@ -132,7 +132,7 @@ export default function Page() {
 
         async function createTable() {
             try {
-                const res = await fetch(`${baseUrl}db`, { method: 'GET' });
+                const res = await fetch(`${baseApiUrl}db`, { method: 'GET' });
                 if (res.ok) {
                     const data = await res.json();
                     console.log('Database initialized:', data);
