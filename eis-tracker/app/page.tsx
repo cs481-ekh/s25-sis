@@ -13,6 +13,8 @@ export default function Home() {
     //Path to default student image
     const imagePath = `/blankimage.png`;
 
+    const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
+
     interface Student {
         StudentID: string;
         First_Name: string;
@@ -30,7 +32,7 @@ export default function Home() {
 
     //function for fetching students from db
     async function fetchStudents() {
-        const res = await fetch('/s25-sis/api/db');
+        const res = await fetch(`${baseApiUrl}db`);
         console.log(loggedInStudents);
 
         if (res.ok) {
@@ -53,7 +55,7 @@ export default function Home() {
         if (!list.includes(StudentID)) {
             newList = list.concat(StudentID);
             setlogs((logs) => [...logs, `${StudentID} logged in at ${d}`]);
-            const res = await fetch('/s25-sis/api/db', {
+            const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -71,7 +73,7 @@ export default function Home() {
         else {
             newList = list.filter((item) => item !== StudentID );
             setlogs((prevLogs) => [...prevLogs, `${StudentID} logged out at ${d}`]);
-            const res = await fetch('/s25-sis/api/db', {
+            const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -96,7 +98,7 @@ export default function Home() {
     useEffect(() => {
         // Make a fetch request to the API route
         async function fetchData() {
-            const res = await fetch('/s25-sis/api/db');
+            const res = await fetch(`${baseApiUrl}db`);
             if (res.ok) {
                 const data = await res.json();
                 console.log('User Database Content:', data.users); // Logs the users data to the console
@@ -107,7 +109,7 @@ export default function Home() {
         }
         async function createTable() {
             try {
-                const res = await fetch('/s25-sis/api/db', { method: 'GET' });
+                const res = await fetch(`${baseApiUrl}db`, { method: 'GET' });
                 if (res.ok) {
                     const data = await res.json();
                     console.log('Database initialized:', data);
@@ -137,7 +139,7 @@ export default function Home() {
         }
         setIdError("");
         
-        const res = await fetch('/s25-sis/api/db', {
+        const res = await fetch(`${baseApiUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -274,25 +276,33 @@ export default function Home() {
                 <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
                     <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
                     <ul className="list-disc pl-5">
-                        {loggedInStudents.filter(student => student.Logged_In).map(student => (
-                            //Possible code when we have folder of student photos:
-                            //const imagePath = `/photos/${student.StudentID}.png`;
-                            <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
-                                <img
-                                    src={imagePath}
-                                    alt={`${student.First_Name}'s Profile`}
-                                    className="w-12 h-12 rounded-full border object-cover"
-                                    //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
-                                />
-                                <div><strong>First Name:</strong> {student.First_Name}</div>
-                                <div>
-                                    <strong>Tags:</strong>
-                                    {/* Convert Tags to a number and render the corresponding colored boxes */}
-                                    {renderTags(parseInt(student.Tags))}
-                                </div>
-                                {/*<div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>*/}
-                            </li>
-                        ))}
+                        {loggedInStudents.filter(student => student.Logged_In).map(student => {
+                            // Build the path to the student's image
+                            const studentImagePath = `/photos/${student.StudentID}.png`;
+
+                            return (
+                                <li key={student.StudentID}
+                                    className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
+                                    <img
+                                        src={studentImagePath}
+                                        alt={imagePath}
+                                        className="w-12 h-12 rounded-full border object-cover"
+                                        // onError={(e) => {
+                                        //     // Prevent further onError calls after setting the fallback
+                                        //     e.currentTarget.onerror = null;
+                                        //     e.currentTarget.src = '/blankimage.png';
+                                        // }}
+                                    />
+                                    <div>
+                                        <strong>First Name:</strong> {student.First_Name}
+                                    </div>
+                                    <div>
+                                        <strong>Tags:</strong>
+                                        {renderTags(parseInt(student.Tags))}
+                                    </div>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
             </div>
