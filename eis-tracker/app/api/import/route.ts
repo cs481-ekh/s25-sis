@@ -31,7 +31,7 @@ const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
     const stream = fs.createReadStream(filePath).pipe(csv());
 
     stream
-      .on('data', (row: any) => {
+      .on('data', (row: { [key: string]: string }) => {
         if (!firstRowProcessed) {
           firstRowProcessed = true;
           return; // Skip the first row
