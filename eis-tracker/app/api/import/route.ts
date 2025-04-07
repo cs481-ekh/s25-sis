@@ -31,7 +31,7 @@ const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
     const stream = fs.createReadStream(filePath).pipe(csv());
 
     stream
-      .on('data', (row: Record<string, string>) => {
+      .on('data', (row: any) => {
         if (!firstRowProcessed) {
           firstRowProcessed = true;
           return; // Skip the first row
@@ -48,10 +48,10 @@ const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
           firstName: firstName || '',
           lastName: lastName || '',
           StudentID: row['SIS User ID'] || '',
-          blueTag: row['BLUE TAG  (228139)'] === '1',
-          greenTag: !!row['GREEN TAG (293966)'] && !isNaN(Number(row['GREEN TAG (293966)'])),
-          orangeTag: !!row['ORANGE TAG (294239)'] && !isNaN(Number(row['ORANGE TAG (294239)'])),
-          whiteTag: row['Training Affirmation (Required)  (228040)'] === '100',
+          blueTag: Number(row['BLUE TAG  (228139)']) === 1,
+          greenTag: Number(row['GREEN TAG (293966)']) === 100,
+          orangeTag: Number(row['ORANGE TAG (294239)']) === 100,
+          whiteTag: Number(row['Training Affirmation (Required)  (228040)']) === 100,
         };
 
         results.push(studentData);
@@ -117,8 +117,7 @@ export async function POST(req: Request) {
 // Handle other HTTP methods (e.g., GET)
 export async function GET(req: NextRequest) {
   try {
-    req.body; // use variable to avoid unused error
-    const defaultData = { message: 'This is a GET request, no file uploaded yet.' };
+    const defaultData = { message: 'This is a GET request, no file uploaded yet.', request: req };
     return new NextResponse(JSON.stringify(defaultData), { status: 200 });
   } catch (error) {
     return new NextResponse(JSON.stringify({message: 'Failed to handle GET request', error}), { status: 500 });
