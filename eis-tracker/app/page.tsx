@@ -11,7 +11,7 @@ export default function Home() {
     const [idError, setIdError] = useState("");
 
     //Path to default student image
-    const imagePath = `/blankimage.png`;
+    const imagePath = `/s25-sis/blankimage.png`;
 
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
@@ -207,7 +207,7 @@ export default function Home() {
             {/* Navigation Bar */}
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
-                <img src="/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
+                <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
 
                 {/* Title and Navigation Link */}
                 <div className="flex items-center justify-between w-full">
@@ -285,13 +285,13 @@ export default function Home() {
                                     className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
                                     <img
                                         src={studentImagePath}
-                                        alt={imagePath}
+                                        alt={`${student.First_Name}'s profile`}
                                         className="w-12 h-12 rounded-full border object-cover"
-                                        // onError={(e) => {
-                                        //     // Prevent further onError calls after setting the fallback
-                                        //     e.currentTarget.onerror = null;
-                                        //     e.currentTarget.src = '/blankimage.png';
-                                        // }}
+                                        onError={(e) => {
+                                            // Prevent further onError calls after setting the fallback
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = imagePath;
+                                        }}
                                     />
                                     <div>
                                         <strong>First Name:</strong> {student.First_Name}

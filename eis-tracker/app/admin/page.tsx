@@ -152,7 +152,7 @@ export default function Page() {
         <div className="flex min-h-screen flex-col">
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
-                <img src="/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
+                <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
 
                 {/* Title and Navigation Link */}
                 <div className="flex items-center justify-between w-full">
