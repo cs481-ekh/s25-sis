@@ -43,7 +43,7 @@ export async function GET() {
         db.close();
 
         // Return a download link
-        return NextResponse.json({ message: "Logs exported successfully!", downloadUrl: "/logs.csv" });
+        return NextResponse.json({ message: "Logs exported successfully!", downloadUrl: "/s25-sis/logs.csv" });
 
     } catch (error) {
         console.error("Error exporting logs:", error);

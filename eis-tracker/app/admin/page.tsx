@@ -11,18 +11,19 @@ export default function Page() {
     const [green, setGreen] = useState(false);
     const [orange, setOrange] = useState(false);
     const [admin, setAdmin] = useState(false);
+    const [supervisor, setSupervisor] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [file, setFile] = useState<File | null>(null); // New state for file
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
     const register = async () => {
-        let res = await fetch('', {
+        let res = await fetch(`${baseApiUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ name, StudentID, mode: 'register' }),
+            body: JSON.stringify({ First_Name: name, Last_Name: "Smith", StudentID: StudentID, mode: 'register' }),
         });
 
         if (res.ok) {
@@ -32,18 +33,19 @@ export default function Page() {
             console.error('Failed to insert user');
         }
         let tags = 0
-        if (white) { tags |= 0b1 }
-        if (blue) { tags |= 0b10 }
-        if (green) { tags |= 0b100 }
-        if (orange) { tags |= 0b1000 }
-        if (admin) { tags |= 0b10000 }
+        if (white)      { tags |= 0b1 }
+        if (blue)       { tags |= 0b10 }
+        if (green)      { tags |= 0b100 }
+        if (orange)     { tags |= 0b1000 }
+        if (admin)      { tags |= 0b10000 }
+        if (supervisor) { tags |= 0b100000 }
 
         res = await fetch(`${baseApiUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ tags, mode: 'edit_tags' }),
+            body: JSON.stringify({ StudentID, Tags: tags, mode: 'edit_tags' }),
         });
 
         if (res.ok) {
@@ -152,7 +154,7 @@ export default function Page() {
         <div className="flex min-h-screen flex-col">
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
-                <img src="/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
+                <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
 
                 {/* Title and Navigation Link */}
                 <div className="flex items-center justify-between w-full">
@@ -210,6 +212,13 @@ export default function Page() {
                         checked={admin}
                         onChange={() => setAdmin(!admin)}
                     /> Admin User
+                </label>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={supervisor}
+                        onChange={() => setSupervisor(!supervisor)}
+                    /> Supervisor
                 </label>
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
                     <button
