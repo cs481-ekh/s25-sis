@@ -5,7 +5,7 @@ import React from "react";
 export default function Page() {
     const [id, setId] = React.useState<string>("");
     const [pass, setPass] = React.useState<string>("");
-    const baseUrl = process.env.API_URL_ROOT ?? "/api/";
+    const baseUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
 
     const handleLogin = async (e: React.FormEvent, link: string) => {
@@ -51,14 +51,14 @@ export default function Page() {
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
                     <button
                         className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={(e) => handleLogin(e, "/")}
+                        onClick={(e) => handleLogin(e, "/s25-sis/")}
                     >
                         Home
                     </button>
 
                     <button
                         className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={(e) => handleLogin(e, "/admin")}
+                        onClick={(e) => handleLogin(e, "/s25-sis/admin")}
                     >
                         Admin
                     </button>

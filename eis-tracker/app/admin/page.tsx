@@ -13,7 +13,7 @@ export default function Page() {
     const [admin, setAdmin] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
 
-    const baseUrl = process.env.API_URL_ROOT ?? "/api/";
+    const baseUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
 
     const register = async () => {
