@@ -84,11 +84,20 @@ export async function GET(request: Request) {
       ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE,' +
       ' Major TEXT DEFAULT NULL)'
     ).run();
+
     db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
       ' Time_In INTEGER,' +
       ' Time_Out INTEGER,' +
       ' User INTEGER REFERENCES users(StudentID) ON DELETE RESTRICT ON UPDATE CASCADE)'
     ).run();
+
+    // ✅ NEW training_data table
+    db.prepare('CREATE TABLE IF NOT EXISTS training_data (' +
+      'StudentID INTEGER PRIMARY KEY UNIQUE,' +
+      'WhiteTag BOOLEAN DEFAULT FALSE,' +
+      'BlueTag BOOLEAN DEFAULT FALSE,' +
+      'GreenTag BOOLEAN DEFAULT FALSE,' +
+      'OrangeTag BOOLEAN DEFAULT FALSE)').run();
 
     // Query the users table
     const users = db.prepare('SELECT * FROM users').all();
