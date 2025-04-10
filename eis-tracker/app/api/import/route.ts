@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as fs from 'fs';
 import csv from 'csv-parser';
 import path from 'path';
+import Database from 'better-sqlite3';
 
 // Define the structure of the data we're interested in
 interface StudentData {
@@ -99,15 +100,98 @@ export async function POST(req: Request) {
 
   try {
     const data = await extractDataFromCSV(filePath);
+    // Open the database connection
+    const db = new Database('database/database.db');
+
+    // Counters for success summary
+    let added = 0;
+    let skipped = 0;
+    let updated = 0; // Count students whose training data was updated
+    let insertedTraining = 0; // Count new training_data inserts separately
+
+      for (const student of data) {
+  if (!student.StudentID || !student.firstName || !student.lastName) {
+    console.warn(`Skipping invalid student entry:`, student);
+    skipped++;
+    continue;
+  }
+
+  // Check if student already exists
+  const existing = db.prepare('SELECT * FROM users WHERE StudentID = ?').get(student.StudentID);
+
+  if (!existing) {
+    db.prepare('INSERT INTO users (StudentID, First_Name, Last_Name) VALUES (?, ?, ?)').run(
+      student.StudentID,
+      student.firstName,
+      student.lastName
+    );
+    added++;
+  } else {
+    skipped++;
+  }
+
+
+  // First, calculate the new tag values from the CSV — do this BEFORE checking trainingExists
+const newBlue = student.blueTag ? 1 : 0;
+const newGreen = student.greenTag ? 1 : 0;
+const newOrange = student.orangeTag ? 1 : 0;
+const newWhite = student.whiteTag ? 1 : 0;
+  // Now check if this student already has a training_data entry
+const trainingExists = db.prepare('SELECT * FROM training_data WHERE StudentID = ?').get(student.StudentID);
+
+if (!trainingExists) {
+  db.prepare(`
+    INSERT INTO training_data (StudentID, BlueTag, GreenTag, OrangeTag, WhiteTag)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(
+    student.StudentID,
+    newBlue,
+    newGreen,
+    newOrange,
+    newWhite
+  );
+  insertedTraining++; // ✅ new training entry
+
+}  else {
+    const currentBlue = trainingExists.BlueTag == null ? 0 : Number(trainingExists.BlueTag);
+    const currentGreen = trainingExists.GreenTag == null ? 0 : Number(trainingExists.GreenTag);
+    const currentOrange = trainingExists.OrangeTag == null ? 0 : Number(trainingExists.OrangeTag);
+    const currentWhite = trainingExists.WhiteTag == null ? 0 : Number(trainingExists.WhiteTag);
+
+  if (
+    currentBlue !== newBlue ||
+    currentGreen !== newGreen ||
+    currentOrange !== newOrange ||
+    currentWhite !== newWhite
+  ) {
+      db.prepare(`
+      UPDATE training_data SET BlueTag = ?, GreenTag = ?, OrangeTag = ?, WhiteTag = ? WHERE StudentID = ?
+    `).run(
+      newBlue,
+      newGreen,
+      newOrange,
+      newWhite,
+      student.StudentID
+    );
+    updated++; // ✅ only if values changed
+   }
+  }
+}
     try {
       if(true) { // Set to true to delete the file after processing
         await fs.promises.unlink(filePath); // Delete the file after processing
-        await fs.promises.rmdir(dirPath, { recursive: true }); // Remove the directory if empty
+        await fs.promises.rm(dirPath, { recursive: true, force: true }); // Remove the directory if empty
       }
     } catch (err) {
       console.error('Error deleting file:', err);
     }
-    return new Response(JSON.stringify({data}), { status: 200 });
+    return new Response(JSON.stringify({
+      message: 'CSV imported successfully',
+      added,
+      skipped,
+      updated,
+      insertedTraining
+    }), { status: 200 });
   } catch (error) {
     return new Response(JSON.stringify({message: 'Error processing the file', error}), { status: 500 });
 

@@ -105,7 +105,9 @@ export default function Page() {
 
             if (res.ok) {
                 const data = await res.json();
-                setUploadMessage("File imported successfully!");
+                setUploadMessage(
+                  `CSV imported successfully!\nAdded: ${data.added} | Skipped: ${data.skipped} | Updated: ${data.updated}`
+                );
                 console.log(data); // Log the extracted data
             } else {
                 setUploadMessage("Error importing file.");
