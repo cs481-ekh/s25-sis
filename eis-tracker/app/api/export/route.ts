@@ -13,37 +13,69 @@ const formatDate = (timestamp: number | null) => `"${timestamp ? new Date(timest
 /**
  * Handles GET requests to export logs from the database as a CSV file.
  */
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        // Connect to the SQLite database
         const db = new Database("database/database.db");
 
-        // Fetch all logs from the database with correct type definition
-        const logs = db.prepare("SELECT LogID, User AS StudentID, Time_In, Time_Out FROM logs").all() as Array<{
-            LogID: number;
-            StudentID: number;
-            Time_In: number | null;
-            Time_Out: number | null;
-        }>;
+        // Check if the query string includes ?major=true
+        const url = new URL(req.url);
+        const isMajorExport = url.searchParams.get("major") === "true";
 
-        // Add BOM (Byte Order Mark) to fix Excel auto-formatting issues
-        let csvContent = `\uFEFF"LogID","StudentID","Time_In","Time_Out"\n`; // CSV Header with BOM
+        let csvContent = `\uFEFF`; // Add BOM for Excel
 
-        logs.forEach(log => {
-            csvContent += `${formatValue(log.LogID)},${formatValue(log.StudentID)},${formatDate(log.Time_In)},${formatDate(log.Time_Out)}\n`;
-        });
+        if (isMajorExport) {
+            // Export lab usage stats grouped by major
+            const stats = db.prepare(`
+                    SELECT 
+                        u.Major,
+                        COUNT(l.LogID) AS Total_Visits,
+                        SUM((l.Time_Out - l.Time_In) / 1000) AS Total_Seconds
+                    FROM logs l
+                    JOIN users u ON l.User = u.StudentID
+                    WHERE u.Major IS NOT NULL
+                    GROUP BY u.Major
+                    ORDER BY Total_Visits DESC
+                `).all() as Array<{
+                Major: string | null;
+                Total_Visits: number;
+                Total_Seconds: number | null;
+            }>;
 
-        // Define the file path to save the CSV
-        const filePath = path.join(process.cwd(), "public", "logs.csv");
+            // Define the CSV header for major stats
+            csvContent += `"Major","Total Visits","Total Time (Seconds)"\n`;
 
-        // Save the CSV file with UTF-8 encoding
+            // Iterate over the stats and add them to the CSV
+            stats.forEach((stat) => {
+                csvContent += `${formatValue(stat.Major)},${formatValue(stat.Total_Visits)},${formatValue(stat.Total_Seconds ?? 0)}\n`;
+            });
+
+        } else {
+            // Default: export all logs
+            const logs = db.prepare("SELECT LogID, User AS StudentID, Time_In, Time_Out FROM logs").all() as Array<{
+                LogID: number;
+                StudentID: number;
+                Time_In: number | null;
+                Time_Out: number | null;
+            }>;
+
+            csvContent += `"LogID","StudentID","Time_In","Time_Out"\n`;
+
+            logs.forEach(log => {
+                csvContent += `${formatValue(log.LogID)},${formatValue(log.StudentID)},${formatDate(log.Time_In)},${formatDate(log.Time_Out)}\n`;
+            });
+        }
+
+        // File name based on export type
+        const fileName = isMajorExport ? "major_stats.csv" : "logs.csv";
+        const filePath = path.join(process.cwd(), "public", fileName);
+
         writeFileSync(filePath, csvContent, { encoding: "utf-8" });
-
-        // Close the database connection
         db.close();
 
-        // Return a download link
-        return NextResponse.json({ message: "Logs exported successfully!", downloadUrl: "/s25-sis/logs.csv" });
+        return NextResponse.json({
+            message: "CSV export successful!",
+            downloadUrl: `/s25-sis/${fileName}`
+        });
 
     } catch (error) {
         console.error("Error exporting logs:", error);

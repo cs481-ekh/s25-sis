@@ -82,6 +82,33 @@ export default function Page() {
         setIsDownloading(false);
     };
 
+    const handleDownloadMajor = async () => {
+        setIsDownloading(true);
+        try {
+            // Fetch the CSV export link from the API
+            const response = await fetch(`${baseApiUrl}export?major=true`);
+            const data = await response.json();
+
+            if (response.ok && data.downloadUrl) {
+                // Create a link and trigger download
+                const link = document.createElement("a");
+                link.href = data.downloadUrl;
+                link.setAttribute("download", "major_stats.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            else {
+                alert("Failed to download logs.");
+            }
+        }
+        catch (error) {
+            console.error("Error downloading logs:", error);
+            alert("An error occurred while downloading logs.");
+        }
+        setIsDownloading(false);
+    };
+
     // Handle the file input change
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -258,6 +285,13 @@ export default function Page() {
                 >
                     {isDownloading ? "Downloading..." : "Download Logs"}
                 </button>
+                <button
+                    onClick={handleDownloadMajor}
+                    disabled={isDownloading}
+                    className="mt-6 px-6 py-3 bg-green-500 text-white text-lg rounded-md hover:bg-green-600 transition disabled:opacity-50"
+                >
+                    {isDownloading ? "Downloading..." : "Download Major Report"}
+                    </button>
             </div>
         </div>
     )
