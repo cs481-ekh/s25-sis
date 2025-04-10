@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     // Simple authentication check (Replace with real logic)
-    // @ts-ignore
+    // @ts-expect-error
     if (record.Password === pass) {
         const headers = new Headers();
         headers.append(
