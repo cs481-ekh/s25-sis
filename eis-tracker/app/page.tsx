@@ -9,9 +9,10 @@ export default function Home() {
     const [logs, setlogs] = useState<string[]>([]);
     const [First_Name, setName] = useState("");
     const [idError, setIdError] = useState("");
+    const [showSupervisorPrompt, setShowSupervisorPrompt] = useState(false);
 
     //Path to default student image
-    const imagePath = `/blankimage.png`;
+    const imagePath = `/s25-sis/blankimage.png`;
 
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
@@ -49,7 +50,35 @@ export default function Home() {
             return;
         }
         setIdError("");
-        
+
+        const params = new URLSearchParams({
+            database: 'database.db',
+            mode: 'user',
+            StudentID: StudentID,
+        });
+
+        const tagRes = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (tagRes.ok) {
+            // Check if supervisor bit is set
+            const data = await tagRes.json();
+            const tags = parseInt(data.user.Tags, 10) || 0;
+            const isSupervisor = (tags & 0b100000) !== 0;
+            const isStudentLoggedIn = loggedInStudents.filter(student => student.Logged_In).some(student => Number(student.StudentID) === Number(StudentID));
+
+            if (isSupervisor && !showSupervisorPrompt && !isStudentLoggedIn) {
+                setShowSupervisorPrompt(true); // Show checkbox before proceeding
+                return;
+            }
+        } else {
+            console.error('Failed to fetch logged-in students');
+        }
+
         const d = new Date().toLocaleString("en-US");
         let newList;
         if (!list.includes(StudentID)) {
@@ -144,7 +173,7 @@ export default function Home() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ First_Name , StudentID, mode: 'register',Tags: 5, Last_Name: 'Smith'}),
+            body: JSON.stringify({ First_Name , StudentID, mode: 'register', Last_Name: 'Smith'}),
         });
 
         if (res.ok) {
@@ -202,12 +231,49 @@ export default function Home() {
         return <div className="flex">{tagElements}</div>;
     };
 
+
+
     return (
         <div className="flex min-h-screen flex-col">
+            {showSupervisorPrompt && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">Supervisor Confirmation</h2>
+                        <p className="mb-4">This account has supervisor privileges.</p>
+                        <div className="flex justify-end gap-4">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    //checked={isSupervising}
+                                    //onChange={() => setSupervising(!isSupervising)}
+                                /> Are you supervising?
+                            </label>
+                            <button
+                                onClick={() => {
+                                    setShowSupervisorPrompt(false); // Hide modal
+                                }}
+                                className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setShowSupervisorPrompt(false);
+                                    await loginButton(); // Retry login now that supervisor confirmed
+                                }}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Navigation Bar */}
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
-                <img src="/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
+                <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
 
                 {/* Title and Navigation Link */}
                 <div className="flex items-center justify-between w-full">
@@ -285,13 +351,13 @@ export default function Home() {
                                     className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
                                     <img
                                         src={studentImagePath}
-                                        alt={imagePath}
+                                        alt={`${student.First_Name}'s profile`}
                                         className="w-12 h-12 rounded-full border object-cover"
-                                        // onError={(e) => {
-                                        //     // Prevent further onError calls after setting the fallback
-                                        //     e.currentTarget.onerror = null;
-                                        //     e.currentTarget.src = '/blankimage.png';
-                                        // }}
+                                        onError={(e) => {
+                                            // Prevent further onError calls after setting the fallback
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = imagePath;
+                                        }}
                                     />
                                     <div>
                                         <strong>First Name:</strong> {student.First_Name}
