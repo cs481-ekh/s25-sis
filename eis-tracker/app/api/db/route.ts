@@ -100,7 +100,21 @@ export async function GET(request: Request) {
       'OrangeTag BOOLEAN DEFAULT FALSE)').run();
 
     // Query the users table
-    const users = db.prepare('SELECT * FROM users').all();
+    // Join users with training_data and compute Tags from training data eligibility
+    const users = db.prepare(`
+      SELECT 
+        u.StudentID,
+        u.First_Name,
+        u.Last_Name,
+        u.Logged_In,
+        COALESCE(td.WhiteTag, 0) * 1 +
+        COALESCE(td.BlueTag, 0) * 2 +
+        COALESCE(td.GreenTag, 0) * 4 +
+        COALESCE(td.OrangeTag, 0) * 8 AS Tags
+      FROM users u
+      LEFT JOIN training_data td ON u.StudentID = td.StudentID
+    `).all();
+
     const logs = db.prepare('SELECT * FROM logs').all();
 
 
