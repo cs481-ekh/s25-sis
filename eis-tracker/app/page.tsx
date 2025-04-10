@@ -9,9 +9,12 @@ export default function Home() {
     const [logs, setlogs] = useState<string[]>([]);
     const [First_Name, setName] = useState("");
     const [idError, setIdError] = useState("");
+    const [showSupervisorPrompt, setShowSupervisorPrompt] = useState(false);
 
     //Path to default student image
-    const imagePath = `/blankimage.png`;
+    const imagePath = `/s25-sis/blankimage.png`;
+
+    const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
     interface Student {
         StudentID: string;
@@ -30,7 +33,7 @@ export default function Home() {
 
     //function for fetching students from db
     async function fetchStudents() {
-        const res = await fetch('/s25-sis/api/db');
+        const res = await fetch(`${baseApiUrl}db`);
         console.log(loggedInStudents);
 
         if (res.ok) {
@@ -47,13 +50,41 @@ export default function Home() {
             return;
         }
         setIdError("");
-        
+
+        const params = new URLSearchParams({
+            database: 'database.db',
+            mode: 'user',
+            StudentID: StudentID,
+        });
+
+        const tagRes = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (tagRes.ok) {
+            // Check if supervisor bit is set
+            const data = await tagRes.json();
+            const tags = parseInt(data.user.Tags, 10) || 0;
+            const isSupervisor = (tags & 0b100000) !== 0;
+            const isStudentLoggedIn = loggedInStudents.filter(student => student.Logged_In).some(student => Number(student.StudentID) === Number(StudentID));
+
+            if (isSupervisor && !showSupervisorPrompt && !isStudentLoggedIn) {
+                setShowSupervisorPrompt(true); // Show checkbox before proceeding
+                return;
+            }
+        } else {
+            console.error('Failed to fetch logged-in students');
+        }
+
         const d = new Date().toLocaleString("en-US");
         let newList;
         if (!list.includes(StudentID)) {
             newList = list.concat(StudentID);
             setlogs((logs) => [...logs, `${StudentID} logged in at ${d}`]);
-            const res = await fetch('/s25-sis/api/db', {
+            const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -71,7 +102,7 @@ export default function Home() {
         else {
             newList = list.filter((item) => item !== StudentID );
             setlogs((prevLogs) => [...prevLogs, `${StudentID} logged out at ${d}`]);
-            const res = await fetch('/s25-sis/api/db', {
+            const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -96,7 +127,7 @@ export default function Home() {
     useEffect(() => {
         // Make a fetch request to the API route
         async function fetchData() {
-            const res = await fetch('/s25-sis/api/db');
+            const res = await fetch(`${baseApiUrl}db`);
             if (res.ok) {
                 const data = await res.json();
                 console.log('User Database Content:', data.users); // Logs the users data to the console
@@ -107,7 +138,7 @@ export default function Home() {
         }
         async function createTable() {
             try {
-                const res = await fetch('/s25-sis/api/db', { method: 'GET' });
+                const res = await fetch(`${baseApiUrl}db`, { method: 'GET' });
                 if (res.ok) {
                     const data = await res.json();
                     console.log('Database initialized:', data);
@@ -137,12 +168,12 @@ export default function Home() {
         }
         setIdError("");
         
-        const res = await fetch('/s25-sis/api/db', {
+        const res = await fetch(`${baseApiUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ First_Name , StudentID, mode: 'register',Tags: 5, Last_Name: 'Smith'}),
+            body: JSON.stringify({ First_Name , StudentID, mode: 'register', Last_Name: 'Smith'}),
         });
 
         if (res.ok) {
@@ -200,12 +231,49 @@ export default function Home() {
         return <div className="flex">{tagElements}</div>;
     };
 
+
+
     return (
         <div className="flex min-h-screen flex-col">
+            {showSupervisorPrompt && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">Supervisor Confirmation</h2>
+                        <p className="mb-4">This account has supervisor privileges.</p>
+                        <div className="flex justify-end gap-4">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    //checked={isSupervising}
+                                    //onChange={() => setSupervising(!isSupervising)}
+                                /> Are you supervising?
+                            </label>
+                            <button
+                                onClick={() => {
+                                    setShowSupervisorPrompt(false); // Hide modal
+                                }}
+                                className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setShowSupervisorPrompt(false);
+                                    await loginButton(); // Retry login now that supervisor confirmed
+                                }}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Navigation Bar */}
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
-                <img src="/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
+                <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
 
                 {/* Title and Navigation Link */}
                 <div className="flex items-center justify-between w-full">
@@ -274,25 +342,33 @@ export default function Home() {
                 <div className="w-1/2 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
                     <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
                     <ul className="list-disc pl-5">
-                        {loggedInStudents.filter(student => student.Logged_In).map(student => (
-                            //Possible code when we have folder of student photos:
-                            //const imagePath = `/photos/${student.StudentID}.png`;
-                            <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
-                                <img
-                                    src={imagePath}
-                                    alt={`${student.First_Name}'s Profile`}
-                                    className="w-12 h-12 rounded-full border object-cover"
-                                    //onError={(e) => (e.currentTarget.src = 'blankimage.png')}
-                                />
-                                <div><strong>First Name:</strong> {student.First_Name}</div>
-                                <div>
-                                    <strong>Tags:</strong>
-                                    {/* Convert Tags to a number and render the corresponding colored boxes */}
-                                    {renderTags(parseInt(student.Tags))}
-                                </div>
-                                {/*<div><strong>Logged In:</strong> {student.Logged_In ? 'Yes' : 'No'}</div>*/}
-                            </li>
-                        ))}
+                        {loggedInStudents.filter(student => student.Logged_In).map(student => {
+                            // Build the path to the student's image
+                            const studentImagePath = `/photos/${student.StudentID}.png`;
+
+                            return (
+                                <li key={student.StudentID}
+                                    className="flex items-center space-x-4 border p-4 rounded-lg shadow-md">
+                                    <img
+                                        src={studentImagePath}
+                                        alt={`${student.First_Name}'s profile`}
+                                        className="w-12 h-12 rounded-full border object-cover"
+                                        onError={(e) => {
+                                            // Prevent further onError calls after setting the fallback
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = imagePath;
+                                        }}
+                                    />
+                                    <div>
+                                        <strong>First Name:</strong> {student.First_Name}
+                                    </div>
+                                    <div>
+                                        <strong>Tags:</strong>
+                                        {renderTags(parseInt(student.Tags))}
+                                    </div>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
             </div>
