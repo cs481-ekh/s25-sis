@@ -13,9 +13,11 @@ export default function Page() {
     const [admin, setAdmin] = useState(false);
     const [supervisor, setSupervisor] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+  
     const [file, setFile] = useState<File | null>(null); // New state for file
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
+
 
     const register = async () => {
         let res = await fetch(`${baseApiUrl}db`, {
