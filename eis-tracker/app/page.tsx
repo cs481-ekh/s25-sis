@@ -10,6 +10,12 @@ export default function Home() {
     const [First_Name, setName] = useState("");
     const [idError, setIdError] = useState("");
     const [showSupervisorPrompt, setShowSupervisorPrompt] = useState(false);
+    const [showMajorPrompt, setShowMajorPrompt] = useState(false);
+
+    // List of majors
+    const majors = ["Computer Science", "Engineering", "Mathematics", "Biology", "Physics" , "Other"];
+
+    const [selectedMajor, setSelectedMajor] = useState<string>("null");
 
     //Path to default student image
     const imagePath = `/s25-sis/blankimage.png`;
@@ -73,6 +79,12 @@ export default function Home() {
 
             if (isSupervisor && !showSupervisorPrompt && !isStudentLoggedIn) {
                 setShowSupervisorPrompt(true); // Show checkbox before proceeding
+                return;
+            }
+
+            const studentMajor = data.user.Major || null;
+            if (studentMajor === null && !showMajorPrompt) {
+                setShowMajorPrompt(true); // Show major selection prompt
                 return;
             }
         } else {
@@ -231,6 +243,28 @@ export default function Home() {
         return <div className="flex">{tagElements}</div>;
     };
 
+    const SetMajor = async () => {
+        if (!validateStudentID(StudentID)) {
+            setIdError("Student ID must be exactly 9 digits (0-9)");
+            return;
+        }
+        setIdError("");
+        
+        const res = await fetch(`${baseApiUrl}db`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({StudentID, mode: 'set_major', Major: selectedMajor}),
+        });
+
+        if (res.ok) {
+            console.log('Updated Major');
+        } else {
+            console.error('Failed to insert user');
+        }
+    }
+
 
 
     return (
@@ -260,6 +294,45 @@ export default function Home() {
                                 onClick={async () => {
                                     setShowSupervisorPrompt(false);
                                     await loginButton(); // Retry login now that supervisor confirmed
+                                }}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showMajorPrompt && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">Select Your Major</h2>
+                        <p className="mb-4">Please select your major from the dropdown below:</p>
+                        <div className="mb-4">
+                            <select
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                onChange={(e) => {
+                                    console.log(`Selected Major: ${e.target.value}`);
+                                    setSelectedMajor(e.target.value); // Store selected major in state
+                                }}
+                            >
+                                {majors.map((major, index) => (
+                                    <option key={index} value={major}>
+                                        {major}
+                                    </option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={async () => {
+                                    if (selectedMajor === "null") {
+                                        alert("Please select a major.");
+                                        return;
+                                    }
+                                    await SetMajor(); // Call the function to set the major
+                                    setShowMajorPrompt(false);
+                                    console.log(`Major selection confirmed: ${selectedMajor}`);
+                                    await loginButton(); // Retry login after major selection
                                 }}
                                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                             >
