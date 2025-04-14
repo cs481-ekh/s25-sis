@@ -12,7 +12,7 @@ interface Student {
 export default function Dashboard() {
     const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
 
-    const imagePath = `/blankimage.png`;
+    const imagePath = `/s25-sis/blankimage.png`;
 
     // Helper function to render colored tag boxes
     const renderTags = (tags: number) => {
@@ -59,26 +59,32 @@ export default function Dashboard() {
     }, []);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-white">
+        <div className="flex flex-col items-center justify-center min-h-screen p-12 bg-white">
             <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
-            <ul className="w-full max-w-2xl">
-                {loggedInStudents.filter(student => student.Logged_In).map(student => (
-                    <li key={student.StudentID} className="flex items-center space-x-4 border p-4 rounded shadow-md mb-2">
+            <div
+                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-6 w-full max-w-[90vw]">
+                {loggedInStudents
+                    .filter(student => student.Logged_In)
+                    .sort((a, b) => a.First_Name.localeCompare(b.First_Name))
+                    .map(student => (
+                        <div key={student.StudentID}
+                         className="flex flex-col items-center border p-8 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105">
                         <img
-                            src={imagePath}
-                            alt={`${student.First_Name}'s Profile`}
-                            className="w-12 h-12 rounded-full object-cover"
+                            src={`/photos/${student.StudentID}.png`}
+                            alt="Profile image"
+                            className="w-20 h-20 rounded-full object-cover"
+                            onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = imagePath; // fallback to blank image
+                            }}
                         />
-                        <div>
-                            <strong>First Name:</strong> {student.First_Name}
+                        <div className="text-center mt-4">
+                            <div className="text-xl font-bold">{student.First_Name}</div>
+                            <div className="mt-2 scale-125">{renderTags(parseInt(student.Tags))}</div>
                         </div>
-                        <div>
-                            <strong>Tags:</strong>
-                            {renderTags(parseInt(student.Tags))}
-                        </div>
-                    </li>
+                    </div>
                 ))}
-            </ul>
+            </div>
         </div>
     );
 }
