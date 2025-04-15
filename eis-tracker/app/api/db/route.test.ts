@@ -17,7 +17,8 @@ describe('database tests', () => {
             ' Tags INTEGER NOT NULL DEFAULT 0,' +
             ' Active BOOLEAN NOT NULL DEFAULT FALSE,' +
             ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE,' +
-            ' Major TEXT DEFAULT NULL)'
+            ' Major TEXT DEFAULT NULL,' +
+            ' CardID TEXT DEFAULT NULL)'
           ).run();
         db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
             ' Time_In INTEGER,' +
@@ -308,6 +309,64 @@ describe('database tests', () => {
             fail();
         // const resBody = await res.json();
         expect(res.status).toBe(400);
+    })
+
+    test('IDCard null get', async () => {
+        const params = new URLSearchParams({
+            database: 'test.db',
+            mode: 'IDCARD',
+            CardID: 'X5'
+        });
+
+        const req = new Request(`http://localhost:3000/api/db?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const res = await route.GET(req);
+        if(!res)
+            fail();
+        // const resBody = await res.json();
+        expect(res.status).toBe(400);
+    })
+
+    test('IDCard set', async () => {
+        const req = new Request(`http://localhost:3000/api/db?`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({database: 'test.db', mode: 'set_IDCARD', StudentID: 123456, CardID: 'X5'}),
+        });
+
+        const res = await route.POST(req);
+        if(!res)
+            fail();
+        // const resBody = await res.json();
+        expect(res.status).toBe(200);
+    })
+
+    test('IDCard get', async () => {
+        const params = new URLSearchParams({
+            database: 'test.db',
+            mode: 'IDCARD',
+            CardID: 'X5'
+        });
+
+        const req = new Request(`http://localhost:3000/api/db?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const res = await route.GET(req);
+        if(!res)
+            fail();
+        // const resBody = await res.json();
+        expect(res.status).toBe(200);
     })
 
     test('user DELETE', async () => {
