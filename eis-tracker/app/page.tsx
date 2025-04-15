@@ -10,7 +10,7 @@ export default function Home() {
     // const [logs, setlogs] = useState<string[]>([]);
     const [notification, setNotification] = useState<string>(""); // New state for temporary notification
 
-    const [First_Name, setName] = useState("");
+    //const [First_Name, setName] = useState("");
     const [idError, setIdError] = useState("");
     const [showSupervisorPrompt, setShowSupervisorPrompt] = useState(false);
     const [showMajorPrompt, setShowMajorPrompt] = useState(false);
@@ -121,7 +121,7 @@ export default function Home() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ First_Name, StudentID, mode: "login" }),
+                body: JSON.stringify({StudentID, mode: "login" }),
             });
 
             if (res.ok) {
@@ -138,7 +138,7 @@ export default function Home() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ First_Name, StudentID, mode: "logout" }),
+                body: JSON.stringify({StudentID, mode: "logout" }),
             });
 
             if (res.ok) {
@@ -200,34 +200,34 @@ export default function Home() {
         fetchStudents();
     }, [list]);
 
-    const registerUser = async () => {
-        if (!validateStudentID(StudentID)) {
-            setIdError("Student ID must be exactly 9 digits (0-9)");
-            return;
-        }
-        setIdError("");
-
-        const res = await fetch(`${baseApiUrl}db`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                First_Name,
-                StudentID,
-                mode: "register",
-                Last_Name: "Smith",
-            }),
-        });
-
-        if (res.ok) {
-            console.log("Inserted User");
-            const data = await res.json();
-            console.log("New User:", data.user);
-        } else {
-            console.error("Failed to insert user");
-        }
-    };
+    // const registerUser = async () => {
+    //     if (!validateStudentID(StudentID)) {
+    //         setIdError("Student ID must be exactly 9 digits (0-9)");
+    //         return;
+    //     }
+    //     setIdError("");
+    //
+    //     const res = await fetch(`${baseApiUrl}db`, {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "application/json",
+    //         },
+    //         body: JSON.stringify({
+    //             First_Name,
+    //             StudentID,
+    //             mode: "register",
+    //             Last_Name: "Smith",
+    //         }),
+    //     });
+    //
+    //     if (res.ok) {
+    //         console.log("Inserted User");
+    //         const data = await res.json();
+    //         console.log("New User:", data.user);
+    //     } else {
+    //         console.error("Failed to insert user");
+    //     }
+    // };
 
     // Helper function to render colored tag boxes
     const renderTags = (tags: number) => {
