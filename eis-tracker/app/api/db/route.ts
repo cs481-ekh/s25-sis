@@ -33,10 +33,12 @@ import Database from 'better-sqlite3';
  * @param {string} mode - The mode of the request:
  *   - `user`: Queries one user given a StudentID in the specified database.
  *   - `log`: Queries one log given a LogID in the specified database.
+ *   - `IDCARD`: Queries one user given a CardID in the specified database.
  *   - `MANUAL`: Executes a custom query in the specified database with limited error checking (use cautiously). The `value` field should contain a query string.
  * @param params - a number of additional parameters dependent on `mode` the names of which are exactly:
  *   - `user`: StudentID - user to be queried.
  *   - `log`: LogID - the log to be queried.
+ *   - `IDCARD`: CardID - the user to be queried.
  *   - `MANUAL`: sql - the SQL statement to be executed.
  * @returns {Response} Returns a response object containing the result from the database
  *   - `status`: `200` if the operation was successful.
@@ -70,6 +72,12 @@ export async function GET(request: Request) {
       }
       const result = db.prepare(sql).all();
       return new Response(JSON.stringify({ result }), { status: 200 });
+    } else if (mode == 'IDCARD'){
+      const CardID = url.searchParams.get('CardID');
+      const user = db.prepare('SELECT * FROM users WHERE CardID = (?)').get(CardID);
+      if(user === undefined) 
+        return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 }); //change to 200 if not returning 400 is desired
+      return new Response(JSON.stringify({ user }), { status: 200 });
     }
   } else {
     console.log('Creating tables');
@@ -82,7 +90,8 @@ export async function GET(request: Request) {
       ' Tags INTEGER NOT NULL DEFAULT 0,' +
       ' Active BOOLEAN NOT NULL DEFAULT FALSE,' +
       ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE,' +
-      ' Major TEXT DEFAULT NULL)'
+      ' Major TEXT DEFAULT NULL,' +
+      ' CardID TEXT DEFAULT NULL)'
     ).run();
 
     db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
@@ -149,13 +158,15 @@ export async function GET(request: Request) {
  *   - `logout`: Marks the user as inactive and logs the logout time in the `logs` table.
  *   - `edit_tags`: Updates the tags of a user in the `users` table.
  *   - `set_major`: Updates the major of a user in the `users` table.
+ *   - `set_IDCARD`: Updates the CardID of a user in the `users` table.
  *   - `MANUAL`: Executes a custom query in the specified database with limited error checking (use cautiously). The `value` field should contain a query string.
  * @param values - a number of additional parameters dependent on `mode` the names of which are exactly:
  *   - `register`: StudentID, First_Name, Last_Name, Tags(optional) - the user to be inserted.
  *   - `login`: StudentID - the user to log in.
  *   - `logout`: StudentID - the user to log out.
- *   - `edit_tags`: StudentID, Tags - the user to be updated.
- *   - `set_major`: StudentID, Major - the user to be updated.
+ *   - `edit_tags`: StudentID, Tags - the user to be updated and the tags to set.
+ *   - `set_major`: StudentID, Major - the user to be updated and what major to set.
+ *   - `set_IDCARD`: StudentID, CardID - the user to be updated and the IDCARD string to set.
  *   - `MANUAL`: sql - the SQL statement to be executed.
  * @returns {Response} Returns a response object containing the result from the database
  *   - `status`: `200` if the operation was successful.
@@ -239,6 +250,16 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ message: 'Empty required fields' }), { status: 400 });
     }
     db.prepare('UPDATE users SET Major = ? WHERE StudentID = ?').run(data.Major, data.StudentID);
+    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+    return new Response(JSON.stringify({ user }), { status: 200 });
+  } else if(data.mode === 'set_IDCARD'){
+    if (data.StudentID === undefined || data.CardID === undefined) {
+      return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
+    }
+    if (data.CardID === '' || data.StudentID === '') {
+      return new Response(JSON.stringify({ message: 'Empty required fields' }), { status: 400 });
+    }
+    db.prepare('UPDATE users SET CardID = ? WHERE StudentID = ?').run(data.CardID, data.StudentID);
     const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
     return new Response(JSON.stringify({ user }), { status: 200 });
   } else {
