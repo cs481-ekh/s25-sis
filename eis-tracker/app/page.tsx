@@ -6,8 +6,6 @@ import Link from "next/link";
 export default function Home() {
     const [StudentID, setStudentID] = useState("");
     const [list, setlist] = useState<string[]>([]);
-    // Remove logs state since we no longer keep a log list:
-    // const [logs, setlogs] = useState<string[]>([]);
     const [notification, setNotification] = useState<string>(""); // New state for temporary notification
 
     //const [First_Name, setName] = useState("");
@@ -160,7 +158,6 @@ export default function Home() {
         await fetchStudents();
 
         setStudentID("");
-        //setName("");
     };
 
     useEffect(() => {
@@ -200,34 +197,6 @@ export default function Home() {
         fetchStudents();
     }, [list]);
 
-    // const registerUser = async () => {
-    //     if (!validateStudentID(StudentID)) {
-    //         setIdError("Student ID must be exactly 9 digits (0-9)");
-    //         return;
-    //     }
-    //     setIdError("");
-    //
-    //     const res = await fetch(`${baseApiUrl}db`, {
-    //         method: "POST",
-    //         headers: {
-    //             "Content-Type": "application/json",
-    //         },
-    //         body: JSON.stringify({
-    //             First_Name,
-    //             StudentID,
-    //             mode: "register",
-    //             Last_Name: "Smith",
-    //         }),
-    //     });
-    //
-    //     if (res.ok) {
-    //         console.log("Inserted User");
-    //         const data = await res.json();
-    //         console.log("New User:", data.user);
-    //     } else {
-    //         console.error("Failed to insert user");
-    //     }
-    // };
 
     // Helper function to render colored tag boxes
     const renderTags = (tags: number) => {
@@ -423,24 +392,6 @@ export default function Home() {
                                 <span className="text-red-500 text-sm mt-1">{idError}</span>
                             )}
                         </div>
-                        {/*<input*/}
-                        {/*    type="text"*/}
-                        {/*    placeholder="Enter Name"*/}
-                        {/*    value={First_Name}*/}
-                        {/*    onChange={(e) => setName(e.target.value)}*/}
-                        {/*    className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"*/}
-                        {/*/>*/}
-                        {/*<button*/}
-                        {/*    onClick={registerUser}*/}
-                        {/*    disabled={!validateStudentID(StudentID)}*/}
-                        {/*    className={`px-6 py-3 text-white text-lg rounded-md transition ${*/}
-                        {/*        validateStudentID(StudentID)*/}
-                        {/*            ? "bg-blue-500 hover:bg-blue-600"*/}
-                        {/*            : "bg-gray-400 cursor-not-allowed"*/}
-                        {/*    }`}*/}
-                        {/*>*/}
-                        {/*    Register*/}
-                        {/*</button>*/}
                         <button
                             className={`px-6 py-3 text-white text-lg rounded-md transition ${
                                 validateStudentID(StudentID)
@@ -453,7 +404,6 @@ export default function Home() {
                             Login
                         </button>
                     </div>
-                    {/* Removed the logs display */}
                     {/* Notification */}
                     {notification && (
                         <div className="mt-4 bg-blue-500 text-white px-4 py-2 rounded transition-opacity duration-1000">
