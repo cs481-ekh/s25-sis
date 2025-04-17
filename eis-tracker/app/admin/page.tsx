@@ -25,7 +25,7 @@ export default function Page() {
 
     const register = async () => {
         if (formMode === 'register') {
-            let res = await fetch(`${baseApiUrl}db`, {
+            const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export default function Page() {
         if (admin)      { tags |= 0b10000 }
         if (supervisor) { tags |= 0b100000 }
 
-        let tagRes = await fetch(`${baseApiUrl}db`, {
+        const tagRes = await fetch(`${baseApiUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
