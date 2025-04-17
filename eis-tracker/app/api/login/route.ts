@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     // Simple authentication check (Replace with real logic)
-    // @ts-expect-error
+    // @ts-expect-error untyped JSON pass
     if (record.Password === pass) {
         const headers = new Headers();
         headers.append(
