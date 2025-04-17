@@ -5,7 +5,8 @@ import Link from "next/link";
 
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
-    const [name, setName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [white, setWhite] = useState(false);
     const [blue, setBlue] = useState(false);
     const [green, setGreen] = useState(false);
@@ -16,24 +17,37 @@ export default function Page() {
   
     const [file, setFile] = useState<File | null>(null); // New state for file
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
+
+    const [showModal, setShowModal] = useState(false);
+    const [formMode, setFormMode] = useState<'register' | 'update'>('register');
+
+
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
 
     const register = async () => {
-        let res = await fetch(`${baseApiUrl}db`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ First_Name: name, Last_Name: "Smith", StudentID: StudentID, mode: 'register' }),
-        });
+        if (formMode === 'register') {
+            const res = await fetch(`${baseApiUrl}db`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    First_Name: firstName,
+                    Last_Name: lastName,
+                    StudentID: StudentID,
+                    mode: 'register'
+                }),
+            });
 
-        if (res.ok) {
-            const data = await res.json();
-            console.log('Inserted User:', data.user);
-        } else {
-            console.error('Failed to insert user');
+            if (res.ok) {
+                const data = await res.json();
+                console.log('Inserted User:', data.user);
+            } else {
+                console.error('Failed to insert user');
+            }
         }
+
         let tags = 0
         if (white)      { tags |= 0b1 }
         if (blue)       { tags |= 0b10 }
@@ -42,7 +56,7 @@ export default function Page() {
         if (admin)      { tags |= 0b10000 }
         if (supervisor) { tags |= 0b100000 }
 
-        res = await fetch(`${baseApiUrl}db`, {
+        const tagRes = await fetch(`${baseApiUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -50,12 +64,14 @@ export default function Page() {
             body: JSON.stringify({ StudentID, Tags: tags, mode: 'edit_tags' }),
         });
 
-        if (res.ok) {
+        if (tagRes.ok) {
             console.log('Updated Tags To', tags);
+            setShowModal(false);
         } else {
             console.error('Failed to update tags');
         }
     }
+
 
     const handleDownload = async () => {
         setIsDownloading(true);
@@ -154,8 +170,89 @@ export default function Page() {
         fetchData();
     });
 
+
+    const openRegister = () => {
+        if (!StudentID) return alert("Enter a Student ID first!");
+        clearForm(); // clears all fields
+        setFormMode('register');
+        setShowModal(true);
+    };
+
+    const openUpdate = async () => {
+        if (!StudentID) return alert("Enter a Student ID first!");
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "user",
+            StudentID: StudentID,
+        });
+
+        const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const user = data.user;
+
+            if (!user) return alert("User not found!");
+
+            setFirstName(user.First_Name);
+            setLastName(user.Last_Name);
+
+            const tags = user.Tags ?? 0;
+            setWhite(!!(tags & 0b1));
+            setBlue(!!(tags & 0b10));
+            setGreen(!!(tags & 0b100));
+            setOrange(!!(tags & 0b1000));
+            setAdmin(!!(tags & 0b10000));
+            setSupervisor(!!(tags & 0b100000));
+
+            setFormMode('update');
+            setShowModal(true);
+        } else {
+            alert("Failed to fetch user info.");
+        }
+    };
+
+    const clearForm = () => {
+        setFirstName("");
+        setLastName("");
+        setWhite(false);
+        setBlue(false);
+        setGreen(false);
+        setOrange(false);
+        setAdmin(false);
+        setSupervisor(false);
+    };
+
+
     return (
         <div className="flex min-h-screen flex-col">
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md space-y-4">
+                        <h2 className="text-xl font-bold">{formMode === 'register' ? "Register User" : "Update User"}</h2>
+                        <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded" />
+                        <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2 border rounded" />
+                        <div className="grid grid-cols-2 gap-2">
+                            <label><input type="checkbox" checked={white} onChange={() => setWhite(!white)} /> White</label>
+                            <label><input type="checkbox" checked={blue} onChange={() => setBlue(!blue)} /> Blue</label>
+                            <label><input type="checkbox" checked={green} onChange={() => setGreen(!green)} /> Green</label>
+                            <label><input type="checkbox" checked={orange} onChange={() => setOrange(!orange)} /> Orange</label>
+                            <label><input type="checkbox" checked={admin} onChange={() => setAdmin(!admin)} /> Admin</label>
+                            <label><input type="checkbox" checked={supervisor} onChange={() => setSupervisor(!supervisor)} /> Supervisor</label>
+                        </div>
+                        <div className="flex justify-between">
+                            <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                            <button onClick={register} className="px-4 py-2 bg-blue-500 text-white rounded">
+                                {formMode === 'register' ? "Register" : "Update"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
                 <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
@@ -175,65 +272,16 @@ export default function Page() {
                     onChange={(e) => setStudentID(e.target.value)}
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <input
-                    type="text"
-                    placeholder="Enter Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none"
-                />
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={white}
-                        onChange={() => setWhite(!white)}
-                    /> White Tag
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={blue}
-                        onChange={() => setBlue(!blue)}
-                    /> Blue Tag
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={green}
-                        onChange={() => setGreen(!green)}
-                    /> Green Tag
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={orange}
-                        onChange={() => setOrange(!orange)}
-                    /> Orange Tag
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={admin}
-                        onChange={() => setAdmin(!admin)}
-                    /> Admin User
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={supervisor}
-                        onChange={() => setSupervisor(!supervisor)}
-                    /> Supervisor
-                </label>
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
                     <button
-                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={() => register()}
+                        //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        onClick={openRegister} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
                         Register User
                     </button>
                     <button
-                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={() => register()}
+                        //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        onClick={openUpdate} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
                         Update User
                     </button>
@@ -263,6 +311,7 @@ export default function Page() {
                     {isDownloading ? "Downloading..." : "Download Logs"}
                 </button>
             </div>
+
         </div>
     )
 }
