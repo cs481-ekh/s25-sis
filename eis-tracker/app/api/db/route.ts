@@ -99,6 +99,14 @@ export async function GET(request: Request) {
       ' Time_Out INTEGER,' +
       ' User INTEGER REFERENCES users(StudentID) ON DELETE RESTRICT ON UPDATE CASCADE)'
     ).run();
+    db.prepare('CREATE TABLE if NOT EXISTS passwords (ID INTEGER PRIMARY KEY UNIQUE,' +
+        ' Password INTEGER NOT NULL DEFAULT 0)'
+    ).run();
+
+    const existingPwd = db.prepare('SELECT * FROM passwords WHERE ID = ?').get(999999999);
+    if (!existingPwd) {
+      db.prepare('INSERT INTO passwords (ID, Password) VALUES (?, ?)').run(999999999, 'admin123');
+    }
 
     // ✅ NEW training_data table
     db.prepare('CREATE TABLE IF NOT EXISTS training_data (' +
@@ -228,7 +236,28 @@ export async function POST(request: Request) {
 
     const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
     return new Response(JSON.stringify({ log }), { status: 200 });
-  } else if (data.mode === 'MANUAL') {
+  } else if (data.mode === 'registerPwd') {
+    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+    if (!user) {
+      return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
+    }
+
+    if (data.Password === undefined || data.Password === '') {
+      return new Response(JSON.stringify({ message: 'Missing or empty password' }), { status: 400 });
+    }
+
+    // Insert or replace password (assumes 1:1 mapping with StudentID)
+    db.prepare('INSERT OR REPLACE INTO passwords (ID, Password) VALUES (?, ?)').run(
+        Number(data.StudentID),
+        Number(data.Password) // You may want to hash this in a real app
+    );
+
+    return new Response(JSON.stringify({ message: 'Password registered' }), { status: 200 });
+  }
+
+
+
+  else if (data.mode === 'MANUAL') {
     const sql = data.sql;
     if (sql === null || sql === undefined || sql === '') {
       return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
