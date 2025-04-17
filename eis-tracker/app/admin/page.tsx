@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
@@ -16,6 +17,15 @@ export default function Page() {
     const [file, setFile] = useState<File | null>(null); // New state for file
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
+
+    const router = useRouter();
+    useEffect(() => {
+        const token = document.cookie.split('; ').find(row => row.startsWith('authToken='));
+
+        if (!token) {
+            router.push('/login');  // Redirect to /login if no authToken
+        }
+    }, [router]);
 
     const register = async () => {
         let res = await fetch(`${baseApiUrl}db`, {
@@ -54,6 +64,8 @@ export default function Page() {
             console.error('Failed to update tags');
         }
     }
+
+
 
     const handleDownload = async () => {
         setIsDownloading(true);
