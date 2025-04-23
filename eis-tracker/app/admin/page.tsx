@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
+import { parseCookies } from "nookies";  // You can use nookies library to parse cookies in Next.js
 
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
@@ -15,13 +16,18 @@ export default function Page() {
     const [admin, setAdmin] = useState(false);
     const [supervisor, setSupervisor] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
-  
     const [file, setFile] = useState<File | null>(null); // New state for file
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
-
     const [showModal, setShowModal] = useState(false);
     const [formMode, setFormMode] = useState<'register' | 'update'>('register');
 
+    const [password, setPassword] = useState("");
+
+    const [role, setRole] = useState<string | null>(null);
+    useEffect(() => {
+        const cookies = parseCookies();
+        setRole(cookies.role);  // Get the role from the cookie
+    }, []);
 
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
@@ -49,6 +55,12 @@ export default function Page() {
                     mode: 'register'
                 }),
             });
+            if (admin || supervisor) {
+                if (!password) {
+                    alert("Password is required for Admin or Supervisor!");
+                    return;
+                }
+            }
 
             if (res.ok) {
                 const data = await res.json();
@@ -79,6 +91,21 @@ export default function Page() {
             setShowModal(false);
         } else {
             console.error('Failed to update tags');
+        }
+
+        const passRes = await fetch(`${baseApiUrl}db`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ StudentID, Password: password, mode: 'registerPwd' }),
+        });
+
+        if (passRes.ok) {
+            console.log('Added Password', tags);
+            setShowModal(false);
+        } else {
+            console.error('Failed to add password');
         }
     }
     
@@ -234,17 +261,29 @@ export default function Page() {
         setOrange(false);
         setAdmin(false);
         setSupervisor(false);
+        setPassword("");
     };
 
 
     return (
         <div className="flex min-h-screen flex-col">
+
+
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md space-y-4">
                         <h2 className="text-xl font-bold">{formMode === 'register' ? "Register User" : "Update User"}</h2>
                         <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded" />
                         <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2 border rounded" />
+                        {(admin || supervisor) && (
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="w-full p-2 border rounded"
+                            />
+                        )}
                         <div className="grid grid-cols-2 gap-2">
                             <label><input type="checkbox" checked={white} onChange={() => setWhite(!white)} /> White</label>
                             <label><input type="checkbox" checked={blue} onChange={() => setBlue(!blue)} /> Blue</label>
@@ -282,12 +321,12 @@ export default function Page() {
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
-                    <button
+                    {role==='admin' && <button
                         //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
                         onClick={openRegister} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
                         Register User
-                    </button>
+                    </button>}
                     <button
                         //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
                         onClick={openUpdate} className="bg-blue-500 text-white px-4 py-2 rounded"
@@ -297,7 +336,7 @@ export default function Page() {
                 </div>
 
                 {/* File Upload Section */}
-                <div className="mt-6">
+                {role==="admin" && (<div className="mt-6">
                     <input
                         type="file"
                         onChange={handleFileChange}
@@ -311,14 +350,14 @@ export default function Page() {
                     </button>
                     {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
                 </div>
-
-                <button
+                )}
+                {role === "admin" && (<button
                     onClick={handleDownload}
                     disabled={isDownloading}
                     className="mt-6 px-6 py-3 bg-green-500 text-white text-lg rounded-md hover:bg-green-600 transition disabled:opacity-50"
                 >
                     {isDownloading ? "Downloading..." : "Download Logs"}
-                </button>
+                </button>)}
             </div>
 
         </div>
