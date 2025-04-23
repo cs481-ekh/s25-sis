@@ -44,7 +44,6 @@ export async function POST(req: Request) {
         headers.append(
             "Set-Cookie",
             serialize("authToken", "logged-in", {
-                httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "strict",
                 path: "/",

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 
 export default function Home() {
     const [StudentID, setStudentID] = useState("");
@@ -32,6 +33,8 @@ export default function Home() {
     const imagePath = `/s25-sis/blankimage.png`;
 
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
+
+    const router = useRouter();
 
     interface Student {
         StudentID: string;
@@ -196,6 +199,45 @@ export default function Home() {
     useEffect(() => {
         fetchStudents();
     }, [list]);
+  
+
+    useEffect(() => {
+        const token = document.cookie.split('; ').find(row => row.startsWith('authToken='));
+
+        if (!token) {
+            router.push('/login');  // Redirect to /login if no authToken
+        }
+    }, [router]);
+
+    // const registerUser = async () => {
+    //     if (!validateStudentID(StudentID)) {
+    //         setIdError("Student ID must be exactly 9 digits (0-9)");
+    //         return;
+    //     }
+    //     setIdError("");
+    //
+    //     const res = await fetch(`${baseApiUrl}db`, {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "application/json",
+    //         },
+    //         body: JSON.stringify({
+    //             First_Name,
+    //             StudentID,
+    //             mode: "register",
+    //             Last_Name: "Smith",
+    //         }),
+    //     });
+    //
+    //     if (res.ok) {
+    //         console.log("Inserted User");
+    //         const data = await res.json();
+    //         console.log("New User:", data.user);
+    //     } else {
+    //         console.error("Failed to insert user");
+    //     }
+    // };
+
 
 
     // Helper function to render colored tag boxes

@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 import { parseCookies } from "nookies";  // You can use nookies library to parse cookies in Next.js
-
 
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
@@ -31,6 +31,15 @@ export default function Page() {
 
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
+
+    const router = useRouter();
+    useEffect(() => {
+        const token = document.cookie.split('; ').find(row => row.startsWith('authToken='));
+
+        if (!token) {
+            router.push('/login');  // Redirect to /login if no authToken
+        }
+    }, [router]);
 
     const register = async () => {
         if (formMode === 'register') {
@@ -99,8 +108,7 @@ export default function Page() {
             console.error('Failed to add password');
         }
     }
-
-
+    
     const handleDownload = async () => {
         setIsDownloading(true);
         try {
