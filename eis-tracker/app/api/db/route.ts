@@ -34,11 +34,13 @@ import Database from 'better-sqlite3';
  *   - `user`: Queries one user given a StudentID in the specified database.
  *   - `log`: Queries one log given a LogID in the specified database.
  *   - `IDCARD`: Queries one user given a CardID in the specified database.
+ *   - `all_logged_in`: Queries all users that are logged in.
  *   - `MANUAL`: Executes a custom query in the specified database with limited error checking (use cautiously). The `value` field should contain a query string.
  * @param params - a number of additional parameters dependent on `mode` the names of which are exactly:
  *   - `user`: StudentID - user to be queried.
  *   - `log`: LogID - the log to be queried.
  *   - `IDCARD`: CardID - the user to be queried.
+ *   - `all_logged_in`: no additional parameters.
  *   - `MANUAL`: sql - the SQL statement to be executed.
  * @returns {Response} Returns a response object containing the result from the database
  *   - `status`: `200` if the operation was successful.
@@ -83,6 +85,9 @@ export async function GET(request: Request) {
       const password = db.prepare('SELECT Password FROM passwords WHERE ID = (?)').get(ID);
 
       return new Response(JSON.stringify({ password }), { status: 200 });
+    } else if (mode === 'all_logged_in'){
+      const users = db.prepare('SELECT * FROM users WHERE Logged_In = TRUE').all();
+      return new Response(JSON.stringify({ users }), { status: 200 });
     }
   } else {
     console.log('Creating tables');
