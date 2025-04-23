@@ -78,6 +78,11 @@ export async function GET(request: Request) {
       if(user === undefined) 
         return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 }); //change to 200 if not returning 400 is desired
       return new Response(JSON.stringify({ user }), { status: 200 });
+    } else if (mode === 'password') {
+      const ID = url.searchParams.get('ID');
+      const password = db.prepare('SELECT Password FROM passwords WHERE ID = (?)').get(ID);
+
+      return new Response(JSON.stringify({ password }), { status: 200 });
     }
   } else {
     console.log('Creating tables');
@@ -106,9 +111,10 @@ export async function GET(request: Request) {
     const existingPwd = db.prepare('SELECT * FROM passwords WHERE ID = ?').get(999999999);
     if (!existingPwd) {
       db.prepare('INSERT INTO passwords (ID, Password) VALUES (?, ?)').run(999999999, 'admin123');
+      db.prepare('INSERT INTO users (StudentID, Tags) VALUES (?, ?)').run(999999999, 0b10000);
     }
 
-    // ✅ NEW training_data table
+    // NEW training_data table
     db.prepare('CREATE TABLE IF NOT EXISTS training_data (' +
       'StudentID INTEGER PRIMARY KEY UNIQUE,' +
       'WhiteTag BOOLEAN DEFAULT FALSE,' +
@@ -237,7 +243,7 @@ export async function POST(request: Request) {
     const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
     return new Response(JSON.stringify({ log }), { status: 200 });
   } else if (data.mode === 'registerPwd') {
-    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(Number(data.StudentID));
     if (!user) {
       return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
     }
@@ -249,7 +255,7 @@ export async function POST(request: Request) {
     // Insert or replace password (assumes 1:1 mapping with StudentID)
     db.prepare('INSERT OR REPLACE INTO passwords (ID, Password) VALUES (?, ?)').run(
         Number(data.StudentID),
-        Number(data.Password) // You may want to hash this in a real app
+        data.Password // You may want to hash this in a real app
     );
 
     return new Response(JSON.stringify({ message: 'Password registered' }), { status: 200 });
