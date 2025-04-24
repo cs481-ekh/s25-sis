@@ -22,6 +22,8 @@ export default function Page() {
     const [formMode, setFormMode] = useState<'register' | 'update'>('register');
 
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
 
     const [role, setRole] = useState<string | null>(null);
     useEffect(() => {
@@ -43,6 +45,17 @@ export default function Page() {
 
     const register = async () => {
         if (formMode === 'register') {
+            if (admin || supervisor) {
+                if (!password || !confirmPassword) {
+                    alert("Both password fields are required for Admin or Supervisor!");
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    alert("Passwords do not match!");
+                    return;
+                }
+            }
+
             const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
@@ -55,12 +68,6 @@ export default function Page() {
                     mode: 'register'
                 }),
             });
-            if (admin || supervisor) {
-                if (!password) {
-                    alert("Password is required for Admin or Supervisor!");
-                    return;
-                }
-            }
 
             if (res.ok) {
                 const data = await res.json();
@@ -262,6 +269,7 @@ export default function Page() {
         setAdmin(false);
         setSupervisor(false);
         setPassword("");
+        setConfirmPassword("");
     };
 
 
@@ -276,13 +284,22 @@ export default function Page() {
                         <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded" />
                         <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2 border rounded" />
                         {(admin || supervisor) && (
-                            <input
-                                type="password"
-                                placeholder="Password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                className="w-full p-2 border rounded"
-                            />
+                            <>
+                                <input
+                                    type="password"
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full p-2 border rounded"
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Confirm Password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full p-2 border rounded"
+                                />
+                            </>
                         )}
                         <div className="grid grid-cols-2 gap-2">
                             <label><input type="checkbox" checked={white} onChange={() => setWhite(!white)} /> White</label>
