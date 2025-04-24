@@ -23,6 +23,7 @@ describe('database tests', () => {
         db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
             ' Time_In INTEGER,' +
             ' Time_Out INTEGER,' +
+            ' Supervising INTEGER DEFAULT NULL,' +
             ' User INTEGER REFERENCES users(StudentID) ON DELETE RESTRICT ON UPDATE CASCADE)'
         ).run();
         db.close(); // Close the database connection
