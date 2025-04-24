@@ -93,19 +93,21 @@ export default function Page() {
             console.error('Failed to update tags');
         }
 
-        const passRes = await fetch(`${baseApiUrl}db`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ StudentID, Password: password, mode: 'registerPwd' }),
-        });
+        if (admin || supervisor) {
+            const passRes = await fetch(`${baseApiUrl}db`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({StudentID, Password: password, mode: 'registerPwd'}),
+            });
 
-        if (passRes.ok) {
-            console.log('Added Password', tags);
-            setShowModal(false);
-        } else {
-            console.error('Failed to add password');
+            if (passRes.ok) {
+                console.log('Added Password', tags);
+                setShowModal(false);
+            } else {
+                console.error('Failed to add password');
+            }
         }
     }
     
