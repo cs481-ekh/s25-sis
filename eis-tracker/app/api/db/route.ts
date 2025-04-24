@@ -107,6 +107,7 @@ export async function GET(request: Request) {
     db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
       ' Time_In INTEGER,' +
       ' Time_Out INTEGER,' +
+      ' Supervising INTEGER DEFAULT NULL,' +
       ' User INTEGER REFERENCES users(StudentID) ON DELETE RESTRICT ON UPDATE CASCADE)'
     ).run();
     db.prepare('CREATE TABLE if NOT EXISTS passwords (ID INTEGER PRIMARY KEY UNIQUE,' +
@@ -226,9 +227,10 @@ export async function POST(request: Request) {
     if(user === undefined) 
       return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
     }
-    db.prepare('INSERT INTO logs (Time_In, User) VALUES (?,?)').run(Date.now(), data.StudentID);
+    db.prepare('INSERT INTO logs (Time_In, User, Supervising) VALUES (?,?,?)').run(Date.now(), data.StudentID, data.Supervising);
     db.prepare('UPDATE users SET Logged_In = TRUE WHERE StudentID = (?)').run(data.StudentID);
     db.prepare('UPDATE users SET Active = TRUE WHERE StudentID = (?)').run(data.StudentID);
+
 
     const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
     return new Response(JSON.stringify({ log }), { status: 200 });

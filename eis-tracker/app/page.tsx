@@ -12,6 +12,7 @@ export default function Home() {
     //const [First_Name, setName] = useState("");
     const [idError, setIdError] = useState("");
     const [showSupervisorPrompt, setShowSupervisorPrompt] = useState(false);
+    const [supervising, setSupervising] = useState(false);
     const [showMajorPrompt, setShowMajorPrompt] = useState(false);
 
     // List of majors
@@ -116,13 +117,17 @@ export default function Home() {
         if (!list.includes(StudentID)) {
             newList = list.concat(StudentID);
 
+            let supervisor = 0;
+            if (supervising){
+                supervisor=1;
+            }
 
             const res = await fetch(`${baseApiUrl}db`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({StudentID, mode: "login" }),
+                body: JSON.stringify({StudentID, mode: "login", Supervising: supervisor }),
             });
 
             if (res.ok) {
@@ -159,6 +164,7 @@ export default function Home() {
 
         // Fetch students
         await fetchStudents();
+
 
         setStudentID("");
     };
@@ -336,6 +342,7 @@ export default function Home() {
                             <button
                                 onClick={async () => {
                                     setShowSupervisorPrompt(false);
+                                    setSupervising(true);
                                     await loginButton(); // Retry login now that supervisor confirmed
                                 }}
                                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
