@@ -40,7 +40,7 @@ export default function Page() {
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
-                    type="text"
+                    type="password"
                     placeholder="Enter Admin Password"
                     value={pass}
                     onChange={(e) => setPass(e.target.value)}
