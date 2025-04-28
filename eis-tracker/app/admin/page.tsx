@@ -24,6 +24,11 @@ export default function Page() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'search'>('dashboard'); // State for active tab
+
+    const handleTabChange = (tab: 'dashboard' | 'search') => {
+        setActiveTab(tab);
+    };
 
     const [role, setRole] = useState<string | null>(null);
     useEffect(() => {
@@ -330,8 +335,29 @@ export default function Page() {
                     <Link href="/login" className="text-white text-lg hover:underline">Back to Login</Link>
                 </div>
             </nav>
-            <div className="flex flex-col items-start justify-start min-h-screen p-8 sm:p-20 bg-gray-100 space-y-4">
 
+            {/* Tab Navigation */}
+            <div className="flex justify-left bg-gray-200 p-1">
+                <button
+                    onClick={() => handleTabChange('dashboard')}
+                    className={`px-6 py-2 rounded-t-lg ${activeTab === 'dashboard' ? 'bg-white font-bold' : 'bg-gray-300'}`}
+                >
+                    Dashboard
+                </button>
+                <button
+                    onClick={() => handleTabChange('search')}
+                    className={`px-6 py-2 rounded-t-lg ${activeTab === 'search' ? 'bg-white font-bold' : 'bg-gray-300'}`}
+                >
+                    Student Search
+                </button>
+            </div>
+            
+            {/* Tab Content */}
+            <div className="flex flex-col items-start justify-start min-h-screen p-8 sm:p-10 bg-gray-100 space-y-4">
+                {activeTab === 'dashboard' && (
+                    <div>
+                        <h2 className="text-xl font-bold mb-4">Dashboard</h2>
+                        <p>Welcome to the EIS Dashboard! Here you can manage users.</p>
                 <input
                     type="text"
                     placeholder="Enter User ID"
@@ -377,6 +403,20 @@ export default function Page() {
                 >
                     {isDownloading ? "Downloading..." : "Download Logs"}
                 </button>)}
+                </div>
+                )}
+
+                {activeTab === 'search' && (
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Search for Student"
+                            value={StudentID}
+                            onChange={(e) => setStudentID(e.target.value)}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                )}
             </div>
 
         </div>
