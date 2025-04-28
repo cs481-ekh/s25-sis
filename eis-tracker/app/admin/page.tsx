@@ -147,10 +147,11 @@ export default function Page() {
                 } else {
                     alert('Failed to upload zip file');
                 }
-            } catch (error) {
-                alert('Error uploading zip file');
-            }
-        } else {
+            } catch {
+            alert('Error uploading zip file');
+        }
+
+    } else {
             // Handle single photo upload
             const formData = new FormData();
             formData.append('image', photo);
@@ -167,7 +168,7 @@ export default function Page() {
                 } else {
                     alert('Failed to upload image');
                 }
-            } catch (error) {
+            } catch {
                 alert('Error uploading image');
             }
         }
