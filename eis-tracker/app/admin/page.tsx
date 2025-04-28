@@ -5,7 +5,16 @@ import Link from "next/link";
 import {useRouter} from "next/navigation";
 import { parseCookies } from "nookies";  // You can use nookies library to parse cookies in Next.js
 
+interface Student {
+    StudentID: string;
+    First_Name: string;
+    Last_Name: string;
+    Tags: string;
+    Logged_In: boolean;
+}
+
 export default function Page() {
+    const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
     const [StudentID, setStudentID] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -30,13 +39,61 @@ export default function Page() {
         setActiveTab(tab);
     };
 
+    const [searchResults, setSearchResults] = useState<Student[]>([]);
+    const renderTags = (tags: number) => {
+        const tagElements = [];
+        if (tags & 1) {
+            tagElements.push(
+                <div key="white" className="w-6 h-6 bg-white border rounded mr-1" title="White" />
+            );
+        }
+        if (tags & 2) {
+            tagElements.push(
+                <div key="blue" className="w-6 h-6 bg-blue-500 border rounded mr-1" title="Blue" />
+            );
+        }
+        if (tags & 4) {
+            tagElements.push(
+                <div key="green" className="w-6 h-6 bg-green-500 border rounded mr-1" title="Green" />
+            );
+        }
+        if (tags & 8) {
+            tagElements.push(
+                <div key="orange" className="w-6 h-6 bg-orange-500 border rounded mr-1" title="Orange" />
+            );
+        }
+        return <div className="flex">{tagElements}</div>;
+    };
+    const [searchQuery, setSearchQuery] = useState("");
+    const handleSearch = async () => {
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "search",
+            search: searchQuery,
+        });
+        const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const users = data.users || [];
+
+            setSearchResults(users);
+        } else {
+            console.error('Failed to fetch search results');
+        }
+    }
+
+
     const [role, setRole] = useState<string | null>(null);
     useEffect(() => {
         const cookies = parseCookies();
         setRole(cookies.role);  // Get the role from the cookie
     }, []);
 
-    const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
 
     const router = useRouter();
@@ -406,15 +463,37 @@ export default function Page() {
                 </div>
                 )}
 
+                {/* Search Tab Content */}
                 {activeTab === 'search' && (
-                    <div>
+                    <div className="flex items-center w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500">
                         <input
                             type="text"
                             placeholder="Search for Student"
                             value={StudentID}
-                            onChange={(e) => setStudentID(e.target.value)}
-                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                handleSearch();
+                            }}
+                            className="flex-grow p-3 text-lg focus:outline-none"
                         />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                            {/* Example cards, replace with dynamic content */}
+                            {StudentID && (
+                                <div className="bg-white p-4 rounded-lg shadow-md">
+                                    <h3 className="text-lg font-bold">Student Name</h3>
+                                    <p>Student ID: {StudentID}</p>
+                                    <p>Additional Info</p>
+                                </div>
+                            )}
+                            {/* Map through search results and render cards */}
+                            {searchResults.map((result) => (
+                                <div key={result.StudentID} className="bg-white p-4 rounded-lg shadow-md">
+                                    <h3 className="text-lg font-bold">{result.First_Name} {result.Last_Name}</h3>
+                                    <p>Student ID: {result.StudentID}</p>
+                                    <div>{renderTags(Number(result.Tags))}</div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
