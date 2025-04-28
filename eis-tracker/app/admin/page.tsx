@@ -13,6 +13,7 @@ interface Student {
     Logged_In: boolean;
 }
 
+
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -32,7 +33,7 @@ export default function Page() {
     const [viewStudents, setViewStudents] = useState(false);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-
+    const [photo, setPhoto] = useState<File | null>(null);
 
     const [role, setRole] = useState<string | null>(null);
     useEffect(() => {
@@ -167,6 +168,63 @@ export default function Page() {
         }
 
         fetchStudents();
+    };
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setPhoto(e.target.files[0]);
+        }
+    };
+
+    const handlePhotoUpload = async () => {
+        if (!photo) {
+            alert("Please select a file first.");
+            return;
+        }
+
+        const isZipFile = photo.name.endsWith(".zip");
+
+        if (isZipFile) {
+            const formData = new FormData();
+            formData.append('file', photo);
+
+            try {
+                const res = await fetch(`${baseApiUrl}upload-photo`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`Zip file uploaded successfully! Extracted ${data.imagesUploaded} images.`);
+                } else {
+                    alert('Failed to upload zip file');
+                }
+            } catch {
+            alert('Error uploading zip file');
+        }
+
+    } else {
+            // Handle single photo upload
+            const formData = new FormData();
+            formData.append('image', photo);
+
+            try {
+                const res = await fetch(`${baseApiUrl}upload-photo`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`Photo uploaded successfully! URL: ${data.imageUrl}`);
+                } else {
+                    alert('Failed to upload image');
+                }
+            } catch {
+                alert('Error uploading image');
+            }
+        }
     };
 
 
@@ -469,6 +527,22 @@ export default function Page() {
                     </button>
                     {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
                 </div>
+                )}
+                {/* Photo Upload Section */}
+                {role==="admin" && (<div className="mt-6">
+                        <input
+                            type="file"
+                            onChange={handlePhotoChange}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                            className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                            onClick={handlePhotoUpload}
+                        >
+                            Upload Photos
+                        </button>
+                        {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
+                    </div>
                 )}
                 {role === "admin" && (<button
                     onClick={handleDownload}

@@ -88,7 +88,7 @@ export default function Dashboard() {
                 <div key={student.StudentID}
                      className="flex flex-col items-center border p-8 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105">
                     <img
-                        src={`/photos/${student.StudentID}.png`}
+                        src={`/s25-sis/photos/${student.StudentID}.png`}
                         alt="Profile image"
                         className="w-20 h-20 rounded-full object-cover"
                         onError={(e) => {
