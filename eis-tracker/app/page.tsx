@@ -136,6 +136,7 @@ export default function Home() {
             } else {
                 console.error("Failed to insert log");
             }
+            setSupervising(false);
         } else {
             newList = list.filter((item) => item !== StudentID);
 
@@ -214,36 +215,6 @@ export default function Home() {
             router.push('/login');  // Redirect to /login if no authToken
         }
     }, [router]);
-
-    // const registerUser = async () => {
-    //     if (!validateStudentID(StudentID)) {
-    //         setIdError("Student ID must be exactly 9 digits (0-9)");
-    //         return;
-    //     }
-    //     setIdError("");
-    //
-    //     const res = await fetch(`${baseApiUrl}db`, {
-    //         method: "POST",
-    //         headers: {
-    //             "Content-Type": "application/json",
-    //         },
-    //         body: JSON.stringify({
-    //             First_Name,
-    //             StudentID,
-    //             mode: "register",
-    //             Last_Name: "Smith",
-    //         }),
-    //     });
-    //
-    //     if (res.ok) {
-    //         console.log("Inserted User");
-    //         const data = await res.json();
-    //         console.log("New User:", data.user);
-    //     } else {
-    //         console.error("Failed to insert user");
-    //     }
-    // };
-
 
 
     // Helper function to render colored tag boxes
@@ -328,9 +299,15 @@ export default function Home() {
                         <h2 className="text-xl font-bold mb-4">Supervisor Confirmation</h2>
                         <p className="mb-4">This account has supervisor privileges.</p>
                         <div className="flex justify-end gap-4">
-                            <label>
-                                <input type="checkbox" /> Are you supervising?
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    checked={supervising}
+                                    onChange={(e) => setSupervising(e.target.checked)}
+                                />
+                                <span>Are you supervising?</span>
                             </label>
+
                             <button
                                 onClick={() => {
                                     setShowSupervisorPrompt(false); // Hide modal
@@ -342,7 +319,6 @@ export default function Home() {
                             <button
                                 onClick={async () => {
                                     setShowSupervisorPrompt(false);
-                                    setSupervising(true);
                                     await loginButton(); // Retry login now that supervisor confirmed
                                 }}
                                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"

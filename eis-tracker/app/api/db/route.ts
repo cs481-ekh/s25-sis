@@ -36,6 +36,7 @@ import Database from 'better-sqlite3';
  *   - `IDCARD`: Queries one user given a CardID in the specified database.
  *   - `all_logged_in`: Queries all users that are logged in.
  *   - `MANUAL`: Executes a custom query in the specified database with limited error checking (use cautiously). The `value` field should contain a query string.
+ *   - `recent_log`: Returns  if the user is logged in
  * @param params - a number of additional parameters dependent on `mode` the names of which are exactly:
  *   - `user`: StudentID - user to be queried.
  *   - `log`: LogID - the log to be queried.
@@ -88,8 +89,17 @@ export async function GET(request: Request) {
     } else if (mode === 'all_logged_in'){
       const users = db.prepare('SELECT * FROM users WHERE Logged_In = TRUE').all();
       return new Response(JSON.stringify({ users }), { status: 200 });
+    } else if (mode === 'recent_log') {
+      const ID = url.searchParams.get('StudentID');
+      const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(ID);
+      if (user === undefined)
+        return new Response(JSON.stringify({message: 'User not found'}), {status: 400});
+      let log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out IS NULL').get(ID);
+      if (log === undefined)
+        return new Response(JSON.stringify({message: 'User not logged in'}), {status: 400});
+      return new Response(JSON.stringify({log}), {status: 200});
     }
-  } else {
+    } else {
     console.log('Creating tables');
     const db = new Database('database/database.db');
 
@@ -227,7 +237,7 @@ export async function POST(request: Request) {
     if(user === undefined) 
       return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
     }
-    db.prepare('INSERT INTO logs (Time_In, User, Supervising) VALUES (?,?,?)').run(Date.now(), data.StudentID, data.Supervising);
+    db.prepare('INSERT INTO logs (Time_In, User, Supervising) VALUES (?,?,?)').run(Date.now(), data.StudentID, Number(data.Supervising));
     db.prepare('UPDATE users SET Logged_In = TRUE WHERE StudentID = (?)').run(data.StudentID);
     db.prepare('UPDATE users SET Active = TRUE WHERE StudentID = (?)').run(data.StudentID);
 
