@@ -12,7 +12,7 @@ usage, allowing lab managers to detect and report on usage trends or any other r
 As a web app, this solution is easier to access and maintain, with the lab administrators and 
 end user not needing to put in as much effort to access, use, and even export data.
 
----
+## Overview
 
 The site's main feature is the home page, which consists of a student sign in and a student display.
 Students will be able to sign in by entering their student ID, their login will be logged along with the timestamp.
@@ -48,6 +48,6 @@ Student Registration
 ## Members
 
 - Ted Moore
-- Jered Fennel
+- Jered Fennell
 - Marc Mangini
 - Adam McCall
