@@ -15,6 +15,7 @@ interface Student {
 
 export default function Page() {
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
+    const imagePath = `/s25-sis/blankimage.png`;
     const [StudentID, setStudentID] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -86,6 +87,32 @@ export default function Page() {
             console.error('Failed to fetch search results');
         }
     }
+
+    const renderCards = (list: Student[]) =>
+        list
+            .sort((a, b) => a.First_Name.localeCompare(b.First_Name))
+            .map(student => {
+                const tags = parseInt(student.Tags, 10);
+                console.log(`StudentID: ${student.StudentID}, Name: ${student.First_Name}, Tags (decimal): ${tags}, Tags (binary): ${tags.toString(2)}`
+                );
+                return(
+                <div key={student.StudentID}
+                     className="flex flex-col items-center border p-8 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105">
+                    <img
+                        src={`/photos/${student.StudentID}.png`}
+                        alt="Profile image"
+                        className="w-20 h-20 rounded-full object-cover"
+                        onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = imagePath;
+                        }}
+                    />
+                    <div className="text-center mt-4">
+                        <div className="text-xl font-bold">{student.First_Name}</div>
+                        <div className="mt-2 scale-125">{renderTags(parseInt(student.Tags))}</div>
+                    </div>
+                </div>
+    )});
 
 
     const [role, setRole] = useState<string | null>(null);
@@ -465,34 +492,21 @@ export default function Page() {
 
                 {/* Search Tab Content */}
                 {activeTab === 'search' && (
-                    <div className="flex items-center w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500">
-                        <input
-                            type="text"
-                            placeholder="Search for Student"
-                            value={StudentID}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value);
-                                handleSearch();
-                            }}
-                            className="flex-grow p-3 text-lg focus:outline-none"
-                        />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                            {/* Example cards, replace with dynamic content */}
-                            {StudentID && (
-                                <div className="bg-white p-4 rounded-lg shadow-md">
-                                    <h3 className="text-lg font-bold">Student Name</h3>
-                                    <p>Student ID: {StudentID}</p>
-                                    <p>Additional Info</p>
-                                </div>
-                            )}
-                            {/* Map through search results and render cards */}
-                            {searchResults.map((result) => (
-                                <div key={result.StudentID} className="bg-white p-4 rounded-lg shadow-md">
-                                    <h3 className="text-lg font-bold">{result.First_Name} {result.Last_Name}</h3>
-                                    <p>Student ID: {result.StudentID}</p>
-                                    <div>{renderTags(Number(result.Tags))}</div>
-                                </div>
-                            ))}
+                    <div>
+                        <div className="flex items-center w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 mb-4">
+                            <input
+                                type="text"
+                                placeholder="Search for Student"
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    handleSearch();
+                                }}
+                                className="flex-grow p-3 text-lg focus:outline-none"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-6">
+                            {renderCards(searchResults)}
                         </div>
                     </div>
                 )}
