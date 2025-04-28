@@ -5,6 +5,15 @@ import Link from "next/link";
 import {useRouter} from "next/navigation";
 import { parseCookies } from "nookies";
 
+interface Student {
+    StudentID: string;
+    First_Name: string;
+    Last_Name: string;
+    Tags: string;
+    Logged_In: boolean;
+}
+
+
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -20,7 +29,8 @@ export default function Page() {
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
     const [showModal, setShowModal] = useState(false);
     const [formMode, setFormMode] = useState<'register' | 'update'>('register');
-
+    const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
+    const [viewStudents, setViewStudents] = useState(false);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [photo, setPhoto] = useState<File | null>(null);
@@ -117,6 +127,49 @@ export default function Page() {
             }
         }
     }
+
+    const fetchStudents = async () => {
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "all_logged_in",
+        });
+
+        const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setLoggedInStudents(data.users || []);
+        } else {
+            console.error('Failed to fetch logged-in students');
+        }
+    };
+
+    const handleLogout = async (studentID: string, studentName: string) => {
+        const confirmLogout = window.confirm(`Are you sure you want to log out ${studentName}?`);
+        if (!confirmLogout) return;
+
+        const res = await fetch(`${baseApiUrl}db`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ StudentID: Number(studentID), mode: "logout" }),
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            console.log("Completed log:", data.log);
+        } else {
+            console.error("Failed to finish log");
+        }
+
+        fetchStudents();
+    };
+
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             setPhoto(e.target.files[0]);
@@ -173,7 +226,6 @@ export default function Page() {
             }
         }
     };
-
 
 
     const handleDownload = async () => {
@@ -332,16 +384,60 @@ export default function Page() {
         setConfirmPassword("");
     };
 
+    useEffect(() => {
+        if (viewStudents) {
+            (async () => {
+                await fetchStudents();
+            })();
+        }
+    }, [viewStudents]);
+
 
     return (
         <div className="flex min-h-screen flex-col">
-
-
+            {viewStudents && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    {/* Modal content */}
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md space-y-4 relative">
+                        {/* Exit button inside the modal */}
+                        <button
+                            onClick={() => setViewStudents(false)}
+                            className="absolute top-4 right-4 px-4 py-2 bg-blue-500 text-white rounded z-10">
+                            Exit
+                        </button>
+                        <h2 className="text-xl font-bold">{"Logged in Students"}</h2>
+                        <div className="overflow-y-auto max-h-96">
+                            {loggedInStudents.length === 0 ? (
+                                <p>No students currently logged in.</p>
+                            ) : (
+                                loggedInStudents.map((student, index) => (
+                                    <div key={index} className="flex items-center justify-between p-2 border-b">
+                                        <div>
+                                            <strong>{student.First_Name} {student.Last_Name}</strong>
+                                        </div>
+                                        <div>
+                                            <strong>Student ID:</strong> {student.StudentID}
+                                        </div>
+                                        <div>
+                                            <button
+                                                onClick={() => handleLogout(student.StudentID, student.First_Name)}
+                                                className="px-4 py-2 bg-red-500 text-white rounded">
+                                                Logout
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md space-y-4">
                         <h2 className="text-xl font-bold">{formMode === 'register' ? "Register User" : "Update User"}</h2>
-                        <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded" />
+                        <input type="text" placeholder="First Name" value={firstName}
+                               onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded"/>
                         <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2 border rounded" />
                         {(admin || supervisor) && (
                             <>
@@ -398,7 +494,7 @@ export default function Page() {
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
-                    {role==='admin' && <button
+                    {role === 'admin' && <button
                         //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
                         onClick={openRegister} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
@@ -410,14 +506,18 @@ export default function Page() {
                     >
                         Update User
                     </button>
+                    <button onClick={() => setViewStudents(true)} className="bg-blue-500 text-white px-4 py-2 rounded">
+                        View Logged in Students
+                    </button>
+
                 </div>
 
                 {/* File Upload Section */}
-                {role==="admin" && (<div className="mt-6">
+                {role === "admin" && (<div className="mt-6">
                     <input
-                        type="file"
-                        onChange={handleFileChange}
-                        className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            type="file"
+                            onChange={handleFileChange}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
                         className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
