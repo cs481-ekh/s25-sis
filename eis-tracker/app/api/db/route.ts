@@ -94,7 +94,7 @@ export async function GET(request: Request) {
       const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(ID);
       if (user === undefined)
         return new Response(JSON.stringify({message: 'User not found'}), {status: 400});
-      let log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out IS NULL').get(ID);
+      const log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out IS NULL').get(ID);
       if (log === undefined)
         return new Response(JSON.stringify({message: 'User not logged in'}), {status: 400});
       return new Response(JSON.stringify({log}), {status: 200});
