@@ -110,15 +110,25 @@ export async function GET(request: Request) {
     const db = new Database('database/database.db');
 
     // Create a table and insert data
-    db.prepare('CREATE TABLE if NOT EXISTS users (StudentID INTEGER PRIMARY KEY UNIQUE,' +
-      ' First_Name TEXT,' +
-      ' Last_Name TEXT,' +
-      ' Tags INTEGER NOT NULL DEFAULT 0,' +
-      ' Active BOOLEAN NOT NULL DEFAULT FALSE,' +
-      ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE,' +
-      ' Major TEXT DEFAULT NULL,' +
-      ' CardID TEXT DEFAULT NULL)'
-    ).run();
+    db.prepare(`
+  CREATE TABLE IF NOT EXISTS users (
+    StudentID INTEGER PRIMARY KEY UNIQUE,
+    First_Name TEXT,
+    Last_Name TEXT,
+    Tags INTEGER NOT NULL DEFAULT 0,
+    Active BOOLEAN NOT NULL DEFAULT FALSE,
+    Logged_In BOOLEAN NOT NULL DEFAULT FALSE,
+    Major TEXT DEFAULT NULL,
+    CardID TEXT DEFAULT NULL,
+    WhiteTag BOOLEAN NOT NULL DEFAULT 0,
+    BlueTag BOOLEAN NOT NULL DEFAULT 0,
+    GreenTag BOOLEAN NOT NULL DEFAULT 0,
+    OrangeTag BOOLEAN NOT NULL DEFAULT 0,
+    PurpleTag BOOLEAN NOT NULL DEFAULT 0
+  )
+`).run();
+
+    db.prepare('DROP TABLE IF EXISTS training_data').run();
 
     db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
       ' Time_In INTEGER,' +
@@ -136,28 +146,20 @@ export async function GET(request: Request) {
       db.prepare('INSERT INTO users (StudentID, Tags) VALUES (?, ?)').run(999999999, 0b10000);
     }
 
-    // NEW training_data table
-    db.prepare('CREATE TABLE IF NOT EXISTS training_data (' +
-      'StudentID INTEGER PRIMARY KEY UNIQUE,' +
-      'WhiteTag BOOLEAN DEFAULT FALSE,' +
-      'BlueTag BOOLEAN DEFAULT FALSE,' +
-      'GreenTag BOOLEAN DEFAULT FALSE,' +
-      'OrangeTag BOOLEAN DEFAULT FALSE)').run();
-
     // Query the users table
     // Join users with training_data and compute Tags from training data eligibility
     const users = db.prepare(`
-      SELECT 
-        u.StudentID,
-        u.First_Name,
-        u.Last_Name,
-        u.Logged_In,
-        COALESCE(td.WhiteTag, 0) * 1 +
-        COALESCE(td.BlueTag, 0) * 2 +
-        COALESCE(td.GreenTag, 0) * 4 +
-        COALESCE(td.OrangeTag, 0) * 8 AS Tags
-      FROM users u
-      LEFT JOIN training_data td ON u.StudentID = td.StudentID
+      SELECT
+        StudentID,
+        First_Name,
+        Last_Name,
+        Logged_In,
+        (WhiteTag * 1 +
+         BlueTag * 2 +
+         GreenTag * 4 +
+         OrangeTag * 8 +
+         PurpleTag * 16) AS Tags
+      FROM users
     `).all();
 
     const logs = db.prepare('SELECT * FROM logs').all();
@@ -297,7 +299,22 @@ export async function POST(request: Request) {
     if (data.StudentID === undefined || data.Tags === undefined) {
       return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
     }
-    db.prepare('UPDATE users SET Tags = ? WHERE StudentID = ?').run(data.Tags, data.StudentID);
+
+    // Decompose the Tags bitmask into individual booleans
+    const tags = Number(data.Tags);
+    const white = (tags & 0b1) ? 1 : 0;
+    const blue = (tags & 0b10) ? 1 : 0;
+    const green = (tags & 0b100) ? 1 : 0;
+    const orange = (tags & 0b1000) ? 1 : 0;
+    const purple = (tags & 0b10000) ? 1 : 0;
+
+    // Update both Tags field AND individual tag columns
+    db.prepare(`
+    UPDATE users
+    SET Tags = ?, WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?, PurpleTag = ?
+    WHERE StudentID = ?
+  `).run(tags, white, blue, green, orange, purple, data.StudentID);
+
     const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
     return new Response(JSON.stringify({ user }), { status: 200 });
   } else if(data.mode === 'set_major'){
