@@ -1,5 +1,4 @@
 import {NextRequest, NextResponse} from 'next/server';
-import * as fs from 'fs';
 import csv from 'csv-parser';
 import Database from 'better-sqlite3';
 import { Readable } from 'stream';
