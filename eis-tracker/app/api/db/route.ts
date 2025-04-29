@@ -119,6 +119,7 @@ export async function GET(request: Request) {
     Active BOOLEAN NOT NULL DEFAULT FALSE,
     Logged_In BOOLEAN NOT NULL DEFAULT FALSE,
     Major TEXT DEFAULT NULL,
+    Other TEXT DEFAULT NULL,
     CardID TEXT DEFAULT NULL,
     WhiteTag BOOLEAN NOT NULL DEFAULT 0,
     BlueTag BOOLEAN NOT NULL DEFAULT 0,
@@ -203,7 +204,7 @@ export async function GET(request: Request) {
  *   - `login`: StudentID - the user to log in.
  *   - `logout`: StudentID - the user to log out.
  *   - `edit_tags`: StudentID, Tags - the user to be updated and the tags to set.
- *   - `set_major`: StudentID, Major - the user to be updated and what major to set.
+ *   - `set_major`: StudentID, Major, Other - the user to be updated and what major to set. Other is optional.
  *   - `set_IDCARD`: StudentID, CardID - the user to be updated and the IDCARD string to set.
  *   - `MANUAL`: sql - the SQL statement to be executed.
  * @returns {Response} Returns a response object containing the result from the database
@@ -325,6 +326,9 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ message: 'Empty required fields' }), { status: 400 });
     }
     db.prepare('UPDATE users SET Major = ? WHERE StudentID = ?').run(data.Major, data.StudentID);
+    if(data.Major === 'Other'){
+      db.prepare('UPDATE users SET Other = ? WHERE StudentID = ?').run(data.Other, data.StudentID);
+    }
     const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
     return new Response(JSON.stringify({ user }), { status: 200 });
   } else if(data.mode === 'set_IDCARD'){

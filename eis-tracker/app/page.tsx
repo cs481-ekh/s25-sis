@@ -29,6 +29,7 @@ export default function Home() {
 
     // Use "null" as a string placeholder for no selection
     const [selectedMajor, setSelectedMajor] = useState<string>("null");
+    const [otherMajor, setOtherMajor] = useState<string>("");
 
     // Path to default student image
     const imagePath = `/s25-sis/blankimage.png`;
@@ -279,6 +280,7 @@ export default function Home() {
                 StudentID,
                 mode: "set_major",
                 Major: selectedMajor,
+                Other: otherMajor,
             }),
         });
 
@@ -353,15 +355,25 @@ export default function Home() {
                                     </option>
                                 ))}
                             </select>
+                            {selectedMajor === "Other" && (
+                                <input
+                                    type="text"
+                                    placeholder="Enter your major"
+                                    className="w-full p-3 mt-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) => setOtherMajor(e.target.value)}
+                                />
+                            )}
                             <button
                                 onClick={async () => {
-                                    if (selectedMajor === "null") {
-                                        alert("Please select a major.");
+                                    if (selectedMajor === "null" || (selectedMajor=== "Other" && otherMajor.trim() === "")) {
+                                        alert("Please select or enter a major.");
                                         return;
                                     }
                                     await SetMajor();
                                     setShowMajorPrompt(false);
-                                    console.log(`Major selection confirmed: ${selectedMajor}`);
+                                    console.log(`Major selection confirmed: ${otherMajor? otherMajor : selectedMajor}`);
+                                    setSelectedMajor("null"); // Reset selection
+                                    setOtherMajor(""); // Reset other major input
                                     await loginButton();
                                 }}
                                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
