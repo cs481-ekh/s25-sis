@@ -41,8 +41,9 @@ export default function Home() {
     interface Student {
         StudentID: string;
         First_Name: string;
-        Tags: string;
+        Tags: number;
         Logged_In: boolean;
+        TotalHours: number;
     }
 
     const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
@@ -474,7 +475,7 @@ export default function Home() {
                                         </div>
                                         <div>
                                             <strong>Tags:</strong>
-                                            {renderTags(parseInt(student.Tags))}
+                                            {renderTags(student.Tags)}
                                         </div>
                                     </li>
                                 );

@@ -89,8 +89,34 @@ export async function GET(request: Request) {
       const password = db.prepare('SELECT Password FROM passwords WHERE ID = (?)').get(ID);
 
       return new Response(JSON.stringify({ password }), { status: 200 });
-    } else if (mode === 'all_logged_in'){
-      const users = db.prepare('SELECT * FROM users WHERE Logged_In = TRUE').all();
+    } else if (mode === 'all_logged_in') {
+      const now = Date.now();
+      const users = db.prepare(`
+    SELECT
+      StudentID,
+      First_Name,
+      Last_Name,
+      Logged_In,
+      (WhiteTag * 1 +
+       BlueTag * 2 +
+       GreenTag * 4 +
+       OrangeTag * 8 +
+       PurpleTag * 16) AS Tags,
+      ROUND((
+              SELECT SUM(
+                         CASE
+                           WHEN Time_Out IS NOT NULL THEN (Time_Out - Time_In)
+                           ELSE (? - Time_In)
+                           END
+                     ) / 3600000.0
+              FROM logs
+              WHERE logs.User = users.StudentID
+            ), 2) AS TotalHours,
+      WhiteTag, BlueTag, GreenTag, OrangeTag, PurpleTag
+    FROM users
+    WHERE Logged_In = TRUE
+  `).all(now);
+
       return new Response(JSON.stringify({ users }), { status: 200 });
     } else if (mode === 'recent_log') {
       const ID = url.searchParams.get('StudentID');
@@ -160,7 +186,17 @@ export async function GET(request: Request) {
          BlueTag * 2 +
          GreenTag * 4 +
          OrangeTag * 8 +
-         PurpleTag * 16) AS Tags
+         PurpleTag * 16) AS Tags,
+        (
+          SELECT SUM(
+                     CASE
+                       WHEN Time_Out IS NOT NULL THEN (Time_Out - Time_In)
+                       ELSE 0
+                       END
+                 ) / 3600000.0
+          FROM logs
+          WHERE logs.User = users.StudentID
+        ) AS TotalHours
       FROM users
     `).all();
 
