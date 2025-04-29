@@ -1,7 +1,6 @@
 import {NextRequest, NextResponse} from 'next/server';
 import * as fs from 'fs';
 import csv from 'csv-parser';
-import path from 'path';
 import Database from 'better-sqlite3';
 import { Readable } from 'stream';
 
@@ -21,51 +20,6 @@ export const config = {
     api: {
         bodyParser: false,
     },
-};
-
-// Function to extract relevant data from CSV
-const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
-    const results: StudentData[] = [];
-    let firstRowProcessed = false;
-
-    // Using a Promise wrapper around the stream process
-    return new Promise((resolve, reject) => {
-        const stream = fs.createReadStream(filePath).pipe(csv());
-
-        stream
-            .on('data', (row: { [key: string]: string }) => {
-                if (!firstRowProcessed) {
-                    firstRowProcessed = true;
-                    return; // Skip the first row
-                }
-
-                if (row['Student'] === 'Student, Test') {
-                    return; // Skip the test student row
-                }
-
-                const fullName = row['Student'];
-                const [lastName, firstName] = fullName.split(',').map((name: string) => name.trim());
-
-                const studentData: StudentData = {
-                    firstName: firstName || '',
-                    lastName: lastName || '',
-                    StudentID: row['SIS User ID'] || '',
-                    blueTag: Number(row['BLUE TAG  (228139)']) === 1,
-                    greenTag: Number(row['GREEN TAG (293966)']) === 100,
-                    orangeTag: Number(row['ORANGE TAG (294239)']) === 100,
-                    whiteTag: Number(row['Training Affirmation (Required)  (228040)']) === 100,
-                };
-
-                results.push(studentData);
-            })
-            .on('end', () => {
-                results.pop(); // Remove the last test student
-                resolve(results); // Resolve the promise with the final results
-            })
-            .on('error', (err) => {
-                reject(err); // Reject the promise in case of error
-            });
-    });
 };
 
 const extractDataFromBuffer = async (buffer: ArrayBuffer): Promise<StudentData[]> => {
