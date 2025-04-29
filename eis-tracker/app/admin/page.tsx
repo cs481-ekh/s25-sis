@@ -44,30 +44,6 @@ export default function Page() {
     };
 
     const [searchResults, setSearchResults] = useState<Student[]>([]);
-    const renderTags = (tags: number) => {
-        const tagElements = [];
-        if (tags & 1) {
-            tagElements.push(
-                <div key="white" className="w-6 h-6 bg-white border rounded mr-1" title="White" />
-            );
-        }
-        if (tags & 2) {
-            tagElements.push(
-                <div key="blue" className="w-6 h-6 bg-blue-500 border rounded mr-1" title="Blue" />
-            );
-        }
-        if (tags & 4) {
-            tagElements.push(
-                <div key="green" className="w-6 h-6 bg-green-500 border rounded mr-1" title="Green" />
-            );
-        }
-        if (tags & 8) {
-            tagElements.push(
-                <div key="orange" className="w-6 h-6 bg-orange-500 border rounded mr-1" title="Orange" />
-            );
-        }
-        return <div className="flex">{tagElements}</div>;
-    };
     const [searchQuery, setSearchQuery] = useState("");
     const handleSearch = async () => {
         const params = new URLSearchParams({
