@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import AdmZip from 'adm-zip';
 
-// Named export for POST request
 export async function POST(req: Request) {
     if (req.method !== 'POST') {
         return new Response('Method Not Allowed', { status: 405 });
@@ -9,41 +9,58 @@ export async function POST(req: Request) {
 
     try {
         const formData = await req.formData();
-        const file = formData.get('file');
-
-        // Check if file is uploaded
-        if (!file) {
-            return new Response('No file uploaded', { status: 400 });
+        // pull from either key
+        const file = formData.get('file') ?? formData.get('image');
+        if (!file || !(file instanceof File)) {
+            return new Response(JSON.stringify({
+                error: 'No file uploaded or invalid file type'
+            }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
 
-        if (!(file instanceof File)) {
-            return new Response('Invalid file', { status: 400 });
-        }
+        const fileName = file.name.toLowerCase();
+        // write into your public folder
+        const uploadDir = path.join(process.cwd(), 'public', 'photos');
+        const uploadPath = path.join(uploadDir, fileName);
 
-        const filePath = `./.tmp/${file.name}`;
-        const dirPath = path.dirname(filePath);
-
-        // Ensure the directory exists
-        try {
-            await fs.promises.access(dirPath);
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-                await fs.promises.mkdir(dirPath, { recursive: true });
-            } else {
-                // Log the error and return a response
-                console.error("Error ensuring directory exists:", error);
-                return new Response('Internal Server Error: Unable to ensure directory existence', { status: 500 });
-            }
-        }
-
-        // Proceed to write file or other logic here
+        // ensure base upload directory
+        await fs.promises.mkdir(uploadDir, { recursive: true });
+        // save the raw file
         const buffer = await file.arrayBuffer();
-        await fs.promises.writeFile(filePath, Buffer.from(buffer));
+        await fs.promises.writeFile(uploadPath, Buffer.from(buffer));
 
-        return new Response('File uploaded successfully', { status: 200 });
-    } catch (error) {
-        // Log the error and return a response
-        console.error("Error handling the POST request:", error);
-        return new Response('Internal Server Error', { status: 500 });
+        if (fileName.endsWith('.zip')) {
+            // 1) unzip *into* the photos directory
+            const zip = new AdmZip(uploadPath);
+            zip.extractAllTo(uploadDir, /* overwrite */ true);
+
+            // 2) optionally delete the original ZIP
+            await fs.promises.unlink(uploadPath);
+
+            // 3) count only image files in the photos folder
+            const allFiles = await fs.promises.readdir(uploadDir);
+            const imageFiles = allFiles.filter(f =>
+                /\.(jpe?g|png|gif|bmp|svg)$/i.test(f)
+            );
+
+            return new Response(JSON.stringify({
+                message: `Zip uploaded and unpacked! ${imageFiles.length} images now in photos.`,
+            }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        } else {
+            // single image → return its URL
+            const imageUrl = `/s25-sis/photos/${fileName}`;
+            return new Response(JSON.stringify({
+                message: 'Single photo uploaded successfully!',
+                imageUrl
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+
+    } catch (err) {
+        console.error('Error in upload-photo:', err);
+        return new Response(JSON.stringify({
+            error: 'Internal Server Error'
+        }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 }
