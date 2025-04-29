@@ -15,6 +15,8 @@ interface Student {
 
 
 export default function Page() {
+    const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
+    const imagePath = `/s25-sis/blankimage.png`;
     const [StudentID, setStudentID] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -35,13 +37,141 @@ export default function Page() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [photo, setPhoto] = useState<File | null>(null);
 
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'search'>('dashboard'); // State for active tab
+
+    const handleTabChange = (tab: 'dashboard' | 'search') => {
+        setActiveTab(tab);
+    };
+
+    const [searchResults, setSearchResults] = useState<Student[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const handleSearch = async () => {
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "search",
+            search: searchQuery,
+        });
+        const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const users = data.users || [];
+
+            setSearchResults(users);
+        } else {
+            console.error('Failed to fetch search results');
+        }
+    }
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [studentsPerPage, setStudentsPerPage] = useState(10);
+
+    const handleStudentsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setStudentsPerPage(parseInt(e.target.value, 10));
+        setCurrentPage(1); // Reset to the first page when changing the number of students per page
+    };
+
+    const renderCards = (list: Student[]) => {
+        
+        const totalPages = Math.ceil(list.length / studentsPerPage);
+
+        const handlePageChange = (page: number) => {
+            if (page >= 1 && page <= totalPages) {
+                setCurrentPage(page);
+            }
+        };
+
+        const startIndex = (currentPage - 1) * studentsPerPage;
+        const endIndex = startIndex + studentsPerPage;
+        const paginatedList = list.slice(startIndex, endIndex);
+
+        if (!list || list.length === 0) {
+            return <div className="text-center text-gray-500">No students found.</div>;
+        }
+
+        return (
+            <div>
+                <div className="flex justify-between items-center mb-4">
+                    <div>
+                        <label htmlFor="studentsPerPage" className="mr-2">Students per page:</label>
+                        <select
+                            id="studentsPerPage"
+                            value={studentsPerPage}
+                            onChange={handleStudentsPerPageChange}
+                            className="p-2 border rounded"
+                        >
+                            <option value={10}>10</option>
+                            <option value={15}>15</option>
+                            <option value={20}>20</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-300 rounded mr-2 disabled:opacity-50"
+                        >
+                            Previous
+                        </button>
+                        <span>Page {currentPage} of {totalPages}</span>
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-gray-300 rounded ml-2 disabled:opacity-50"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
+                        {paginatedList
+                            .sort((a, b) => {
+                                const nameA = a.First_Name || ""; // Fallback to an empty string if null/undefined
+                                const nameB = b.First_Name || ""; // Fallback to an empty string if null/undefined
+                                return nameA.localeCompare(nameB);
+                            })
+                            .map(student => {
+                                return (
+                                    <div
+                                        key={student.StudentID}
+                                        className="flex flex-col items-center border p-2 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105"
+                                        onClick={() => {
+                                            openUpdate(student.StudentID);
+                                        }}
+                                    >
+                                        <img
+                                            src={`/photos/${student.StudentID}.png`}
+                                            alt="Profile image"
+                                            className="w-20 h-20 rounded-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.onerror = null;
+                                                e.currentTarget.src = imagePath;
+                                            }}
+                                        />
+                                        <div className="text-center mt-4">
+                                            <div className="text-xl font-bold">{`${student.First_Name} ${student.Last_Name}`}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+
     const [role, setRole] = useState<string | null>(null);
     useEffect(() => {
         const cookies = parseCookies();
         setRole(cookies.role);  // Get the role from the cookie
     }, []);
 
-    const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
 
     const router = useRouter();
@@ -342,13 +472,18 @@ export default function Page() {
         setShowModal(true);
     };
 
-    const openUpdate = async () => {
+    const openUpdateClick = async () => {
         if (!StudentID) return alert("Enter a Student ID first!");
-        const params = new URLSearchParams({
-            database: "database.db",
-            mode: "user",
-            StudentID: StudentID,
-        });
+        openUpdate(StudentID);
+    };
+
+    const openUpdate = async (StudentID: string) => {
+            if (!StudentID) return alert("Enter a Student ID first!");
+            const params = new URLSearchParams({
+                database: "database.db",
+                mode: "user",
+                StudentID: StudentID,
+            });
 
         const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
             method: "GET",
@@ -493,8 +628,29 @@ export default function Page() {
                     <Link href="/login" className="text-white text-lg hover:underline">Back to Login</Link>
                 </div>
             </nav>
-            <div className="flex flex-col items-start justify-start min-h-screen p-8 sm:p-20 bg-gray-100 space-y-4">
 
+            {/* Tab Navigation */}
+            <div className="flex justify-left bg-gray-200 p-1">
+                <button
+                    onClick={() => handleTabChange('dashboard')}
+                    className={`px-6 py-2 rounded-t-lg ${activeTab === 'dashboard' ? 'bg-white font-bold' : 'bg-gray-300'}`}
+                >
+                    Dashboard
+                </button>
+                <button
+                    onClick={() => handleTabChange('search')}
+                    className={`px-6 py-2 rounded-t-lg ${activeTab === 'search' ? 'bg-white font-bold' : 'bg-gray-300'}`}
+                >
+                    Student Search
+                </button>
+            </div>
+            
+            {/* Tab Content */}
+            <div className="flex flex-col items-start justify-start min-h-screen p-8 sm:p-10 bg-gray-100 space-y-4">
+                {activeTab === 'dashboard' && (
+                    <div>
+                        <h2 className="text-xl font-bold mb-4">Dashboard</h2>
+                        <p>Welcome to the EIS Dashboard! Here you can manage users.</p>
                 <input
                     type="text"
                     placeholder="Enter User ID"
@@ -511,7 +667,7 @@ export default function Page() {
                     </button>}
                     <button
                         //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={openUpdate} className="bg-blue-500 text-white px-4 py-2 rounded"
+                        onClick={openUpdateClick} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
                         Update User
                     </button>
@@ -567,6 +723,39 @@ export default function Page() {
                 >
                     {isDownloading ? "Downloading..." : "Download Major Report"}
                     </button>
+                </div>
+                )}
+
+                {/* Search Tab Content */}
+                {activeTab === 'search' && (
+                    <div className="w-full max-w-[90vw]">
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                handleSearch();
+                                setCurrentPage(1); // Reset to the first page on search
+                            }}
+                            className="flex items-center w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 mb-4"
+                        >
+                            <input
+                                type="text"
+                                placeholder="Search for Student"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="flex-grow p-3 text-lg focus:outline-none"
+                            />
+                            <button
+                                type="submit"
+                                className="px-4 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 transition"
+                            >
+                                Search
+                            </button>
+                        </form>
+                        <div>
+                            {renderCards(searchResults)}
+                        </div>
+                    </div>
+                )}
             </div>
 
         </div>

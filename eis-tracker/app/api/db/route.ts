@@ -35,6 +35,7 @@ import Database from 'better-sqlite3';
  *   - `log`: Queries one log given a LogID in the specified database.
  *   - `IDCARD`: Queries one user given a CardID in the specified database.
  *   - `all_logged_in`: Queries all users that are logged in.
+ *   - `search`: Queries all users that match a search string in the specified database.
  *   - `MANUAL`: Executes a custom query in the specified database with limited error checking (use cautiously). The `value` field should contain a query string.
  *   - `recent_log`: Returns  if the user is logged in
  * @param params - a number of additional parameters dependent on `mode` the names of which are exactly:
@@ -42,6 +43,7 @@ import Database from 'better-sqlite3';
  *   - `log`: LogID - the log to be queried.
  *   - `IDCARD`: CardID - the user to be queried.
  *   - `all_logged_in`: no additional parameters.
+ *   - `search`: search - the search string to be queried.
  *   - `MANUAL`: sql - the SQL statement to be executed.
  * @returns {Response} Returns a response object containing the result from the database
  *   - `status`: `200` if the operation was successful.
@@ -98,6 +100,10 @@ export async function GET(request: Request) {
       if (log === undefined)
         return new Response(JSON.stringify({message: 'User not logged in'}), {status: 400});
       return new Response(JSON.stringify({log}), {status: 200});
+    } else if (mode === 'search') {
+      const search = url.searchParams.get('search');
+      const users = db.prepare(`SELECT * FROM users WHERE First_Name LIKE ? OR Last_Name LIKE ? OR StudentID LIKE ? OR (First_Name || ' ' || Last_Name) LIKE ?`).all(`%${search}%`, `%${search}%`,`%${search}%`,`%${search}%`);
+      return new Response(JSON.stringify({ users }), { status: 200 });
     }
     } else {
     console.log('Creating tables');
