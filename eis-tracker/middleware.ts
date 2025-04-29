@@ -17,5 +17,5 @@ export function middleware(request: NextRequest) {
 
 // Match only real pages inside basePath
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|logo.png|api/db|your-base-path).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|logo.png|favicon.png|api/db|your-base-path).*)'],
 };
