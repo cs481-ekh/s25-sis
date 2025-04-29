@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
-import { parseCookies } from "nookies";  // You can use nookies library to parse cookies in Next.js
+import { parseCookies } from "nookies";
 
 interface Student {
     StudentID: string;
@@ -12,6 +12,7 @@ interface Student {
     Tags: string;
     Logged_In: boolean;
 }
+
 
 export default function Page() {
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
@@ -30,9 +31,11 @@ export default function Page() {
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
     const [showModal, setShowModal] = useState(false);
     const [formMode, setFormMode] = useState<'register' | 'update'>('register');
-
+    const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
+    const [viewStudents, setViewStudents] = useState(false);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [photo, setPhoto] = useState<File | null>(null);
 
     const [activeTab, setActiveTab] = useState<'dashboard' | 'search'>('dashboard'); // State for active tab
 
@@ -278,7 +281,89 @@ export default function Page() {
             }
         }
     }
-    
+
+    const fetchStudents = async () => {
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "all_logged_in",
+        });
+
+        const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setLoggedInStudents(data.users || []);
+        } else {
+            console.error('Failed to fetch logged-in students');
+        }
+    };
+
+    const handleLogout = async (studentID: string, studentName: string) => {
+        const confirmLogout = window.confirm(`Are you sure you want to log out ${studentName}?`);
+        if (!confirmLogout) return;
+
+        const res = await fetch(`${baseApiUrl}db`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ StudentID: Number(studentID), mode: "logout" }),
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            console.log("Completed log:", data.log);
+        } else {
+            console.error("Failed to finish log");
+        }
+
+        fetchStudents();
+    };
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setPhoto(e.target.files[0]);
+        }
+    };
+
+    const handlePhotoUpload = async () => {
+        if (!photo) {
+            alert("Please select a file first.");
+            return;
+        }
+
+        const isZipFile = photo.name.endsWith(".zip");
+        const formData = new FormData();
+        formData.append(isZipFile ? 'file' : 'image', photo); // Adjust field name based on file type
+
+        try {
+            const res = await fetch(`${baseApiUrl}upload-photo`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (isZipFile) {
+                    alert(`Zip file uploaded successfully! Extracted ${data.imagesUploaded} images.`);
+                } else {
+                    alert(`Photo uploaded successfully! URL: ${data.imageUrl}`);
+                }
+            } else {
+                const data = await res.json();
+                alert(`Failed to upload file: ${data.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error uploading:', error);
+            alert('Error uploading file');
+        }
+    };
+
+
     const handleDownload = async () => {
         setIsDownloading(true);
         try {
@@ -291,6 +376,33 @@ export default function Page() {
                 const link = document.createElement("a");
                 link.href = data.downloadUrl;
                 link.setAttribute("download", "logs.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            else {
+                alert("Failed to download logs.");
+            }
+        }
+        catch (error) {
+            console.error("Error downloading logs:", error);
+            alert("An error occurred while downloading logs.");
+        }
+        setIsDownloading(false);
+    };
+
+    const handleDownloadMajor = async () => {
+        setIsDownloading(true);
+        try {
+            // Fetch the CSV export link from the API
+            const response = await fetch(`${baseApiUrl}export?major=true`);
+            const data = await response.json();
+
+            if (response.ok && data.downloadUrl) {
+                // Create a link and trigger download
+                const link = document.createElement("a");
+                link.href = data.downloadUrl;
+                link.setAttribute("download", "major_stats.csv");
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -440,16 +552,60 @@ export default function Page() {
         setConfirmPassword("");
     };
 
+    useEffect(() => {
+        if (viewStudents) {
+            (async () => {
+                await fetchStudents();
+            })();
+        }
+    }, [viewStudents]);
+
 
     return (
         <div className="flex min-h-screen flex-col">
-
-
+            {viewStudents && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    {/* Modal content */}
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md space-y-4 relative">
+                        {/* Exit button inside the modal */}
+                        <button
+                            onClick={() => setViewStudents(false)}
+                            className="absolute top-4 right-4 px-4 py-2 bg-blue-500 text-white rounded z-10">
+                            Exit
+                        </button>
+                        <h2 className="text-xl font-bold">{"Logged in Students"}</h2>
+                        <div className="overflow-y-auto max-h-96">
+                            {loggedInStudents.length === 0 ? (
+                                <p>No students currently logged in.</p>
+                            ) : (
+                                loggedInStudents.map((student, index) => (
+                                    <div key={index} className="flex items-center justify-between p-2 border-b">
+                                        <div>
+                                            <strong>{student.First_Name} {student.Last_Name}</strong>
+                                        </div>
+                                        <div>
+                                            <strong>Student ID:</strong> {student.StudentID}
+                                        </div>
+                                        <div>
+                                            <button
+                                                onClick={() => handleLogout(student.StudentID, student.First_Name)}
+                                                className="px-4 py-2 bg-red-500 text-white rounded">
+                                                Logout
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md space-y-4">
                         <h2 className="text-xl font-bold">{formMode === 'register' ? "Register User" : "Update User"}</h2>
-                        <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded" />
+                        <input type="text" placeholder="First Name" value={firstName}
+                               onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded"/>
                         <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2 border rounded" />
                         {(admin || supervisor) && (
                             <>
@@ -527,7 +683,7 @@ export default function Page() {
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
-                    {role==='admin' && <button
+                    {role === 'admin' && <button
                         //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
                         onClick={openRegister} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
@@ -539,14 +695,18 @@ export default function Page() {
                     >
                         Update User
                     </button>
+                    <button onClick={() => setViewStudents(true)} className="bg-blue-500 text-white px-4 py-2 rounded">
+                        View Logged in Students
+                    </button>
+
                 </div>
 
                 {/* File Upload Section */}
-                {role==="admin" && (<div className="mt-6">
+                {role === "admin" && (<div className="mt-6">
                     <input
-                        type="file"
-                        onChange={handleFileChange}
-                        className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            type="file"
+                            onChange={handleFileChange}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
                         className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
@@ -557,6 +717,22 @@ export default function Page() {
                     {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
                 </div>
                 )}
+                {/* Photo Upload Section */}
+                {role==="admin" && (<div className="mt-6">
+                        <input
+                            type="file"
+                            onChange={handlePhotoChange}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                            className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                            onClick={handlePhotoUpload}
+                        >
+                            Upload Photos
+                        </button>
+                        {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
+                    </div>
+                )}
                 {role === "admin" && (<button
                     onClick={handleDownload}
                     disabled={isDownloading}
@@ -564,6 +740,13 @@ export default function Page() {
                 >
                     {isDownloading ? "Downloading..." : "Download Logs"}
                 </button>)}
+                <button
+                    onClick={handleDownloadMajor}
+                    disabled={isDownloading}
+                    className="mt-6 px-6 py-3 bg-green-500 text-white text-lg rounded-md hover:bg-green-600 transition disabled:opacity-50"
+                >
+                    {isDownloading ? "Downloading..." : "Download Major Report"}
+                    </button>
                 </div>
                 )}
 

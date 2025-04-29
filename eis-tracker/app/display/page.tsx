@@ -12,6 +12,7 @@ interface Student {
 
 export default function Dashboard() {
     const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
+    const [supervisors, setSupervisors] = useState<Student[]>([]);
 
     const imagePath = `/s25-sis/blankimage.png`;
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
@@ -42,6 +43,30 @@ export default function Dashboard() {
         return <div className="flex">{tagElements}</div>;
     };
 
+    const checkSupervisor = async (id: string) => {
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "recent_log",
+            StudentID: id,
+        });
+
+        const tagRes = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (!tagRes.ok) {
+            console.error('Failed to fetch supervisor data');
+            return;
+        }
+        const data = await tagRes.json();
+
+        console.log("recent_log response for student", id, ":", data);
+
+        return parseInt(data.log.Supervising) === 1;
+    }
+
     // Fetch logged-in students from the API
     const fetchStudents = async () => {
         const params = new URLSearchParams({
@@ -69,12 +94,24 @@ export default function Dashboard() {
         const interval = setInterval(fetchStudents, 5000);
         return () => clearInterval(interval);
     }, []);
-    const supervisors = loggedInStudents.filter(
-        s => s.Logged_In && (parseInt(s.Tags, 10) & 0b100000)
-    );
+
+
+    useEffect(() => {
+        const fetchSupervisors = async () => {
+            const supervisorList = await Promise.all(
+                loggedInStudents.map(async (student) => {
+                    const isSupervisor = await checkSupervisor(student.StudentID);
+                    return isSupervisor ? student : null;
+                })
+            );
+            setSupervisors(supervisorList.filter(Boolean) as Student[]);
+        };
+
+        fetchSupervisors();
+    }, [loggedInStudents]);
 
     const students = loggedInStudents.filter(
-        s => s.Logged_In && !(parseInt(s.Tags, 10) & 0b100000)
+        student => !supervisors.some(supervisor => supervisor.StudentID === student.StudentID)
     );
 
     const renderCards = (list: Student[]) =>
@@ -88,7 +125,7 @@ export default function Dashboard() {
                 <div key={student.StudentID}
                      className="flex flex-col items-center border p-8 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105">
                     <img
-                        src={`/photos/${student.StudentID}.png`}
+                        src={`/s25-sis/photos/${student.StudentID}.jpg`}
                         alt="Profile image"
                         className="w-20 h-20 rounded-full object-cover"
                         onError={(e) => {
@@ -112,7 +149,7 @@ export default function Dashboard() {
                     <Link href="/login" className="text-white text-lg hover:underline">Back to Login</Link>
                 </div>
             </nav>
-            <div className="flex flex-col items-center justify-center p-12 bg-white min-h-screen space-y-12">
+            <div className="flex flex-col items-center p-5 bg-white min-h-screen space-y-12">
                 <div className="w-full max-w-[90vw]">
                     <h2 className="text-2xl font-bold mb-4 text-center">Current Supervisors</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-6">
