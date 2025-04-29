@@ -55,7 +55,7 @@ export default function Home() {
     // Function for fetching students from db
     async function fetchStudents() {
         const res = await fetch(`${baseApiUrl}db`);
-        console.log(loggedInStudents);
+        //console.log(loggedInStudents);
 
         if (res.ok) {
             const data = await res.json();
@@ -132,7 +132,7 @@ export default function Home() {
 
             if (res.ok) {
                 const data = await res.json();
-                console.log("New log:", data.log);
+                //console.log("New log:", data.log);
             } else {
                 console.error("Failed to insert log");
             }
@@ -150,7 +150,7 @@ export default function Home() {
 
             if (res.ok) {
                 const data = await res.json();
-                console.log("Completed log:", data.log);
+                //console.log("Completed log:", data.log);
             } else {
                 console.error("Failed to finish log");
             }
@@ -176,8 +176,8 @@ export default function Home() {
             const res = await fetch(`${baseApiUrl}db`);
             if (res.ok) {
                 const data = await res.json();
-                console.log("User Database Content:", data.users);
-                console.log("Logs Database Content:", data.logs);
+                //console.log("User Database Content:", data.users);
+                //console.log("Logs Database Content:", data.logs);
             } else {
                 console.error("Failed to fetch data");
             }
@@ -187,7 +187,7 @@ export default function Home() {
                 const res = await fetch(`${baseApiUrl}db`, { method: "GET" });
                 if (res.ok) {
                     const data = await res.json();
-                    console.log("Database initialized:", data);
+                    //console.log("Database initialized:", data);
                     await fetchStudents(); // Fetch users after database creation
                 } else {
                     console.error("Failed to initialize database");
@@ -339,7 +339,7 @@ export default function Home() {
                             <select
                                 className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 onChange={(e) => {
-                                    console.log(`Selected Major: ${e.target.value}`);
+                                    //console.log(`Selected Major: ${e.target.value}`);
                                     setSelectedMajor(e.target.value);
                                 }}
                                 value={selectedMajor}

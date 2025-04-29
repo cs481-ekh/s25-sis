@@ -422,7 +422,7 @@ export default function Page() {
                 setUploadMessage(
                   `CSV imported successfully!\nAdded: ${data.added} | Skipped: ${data.skipped} | Updated: ${data.updated}`
                 );
-                console.log(data); // Log the extracted data
+                //console.log(data); // Log the extracted data
             } else {
                 setUploadMessage("Error importing file.");
                 console.error("Error importing file.");
@@ -439,8 +439,8 @@ export default function Page() {
             const res = await fetch(`${baseApiUrl}db`);
             if (res.ok) {
                 const data = await res.json();
-                console.log('User Database Content:', data.users); // Logs the users data to the console
-                console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
+                //console.log('User Database Content:', data.users); // Logs the users data to the console
+                //console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
             } else {
                 console.error('Failed to fetch data');
             }
@@ -451,7 +451,7 @@ export default function Page() {
                 const res = await fetch(`${baseApiUrl}db`, { method: 'GET' });
                 if (res.ok) {
                     const data = await res.json();
-                    console.log('Database initialized:', data);
+                    //console.log('Database initialized:', data);
                 } else {
                     console.error('Failed to initialize database');
                 }
