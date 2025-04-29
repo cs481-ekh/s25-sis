@@ -183,47 +183,29 @@ export default function Page() {
         }
 
         const isZipFile = photo.name.endsWith(".zip");
+        const formData = new FormData();
+        formData.append(isZipFile ? 'file' : 'image', photo); // Adjust field name based on file type
 
-        if (isZipFile) {
-            const formData = new FormData();
-            formData.append('file', photo);
+        try {
+            const res = await fetch(`${baseApiUrl}upload-photo`, {
+                method: 'POST',
+                body: formData,
+            });
 
-            try {
-                const res = await fetch(`${baseApiUrl}upload-photo`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
+            if (res.ok) {
+                const data = await res.json();
+                if (isZipFile) {
                     alert(`Zip file uploaded successfully! Extracted ${data.imagesUploaded} images.`);
                 } else {
-                    alert('Failed to upload zip file');
-                }
-            } catch {
-            alert('Error uploading zip file');
-        }
-
-    } else {
-            // Handle single photo upload
-            const formData = new FormData();
-            formData.append('image', photo);
-
-            try {
-                const res = await fetch(`${baseApiUrl}upload-photo`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
                     alert(`Photo uploaded successfully! URL: ${data.imageUrl}`);
-                } else {
-                    alert('Failed to upload image');
                 }
-            } catch {
-                alert('Error uploading image');
+            } else {
+                const data = await res.json();
+                alert(`Failed to upload file: ${data.message || 'Unknown error'}`);
             }
+        } catch (error) {
+            console.error('Error uploading:', error);
+            alert('Error uploading file');
         }
     };
 
