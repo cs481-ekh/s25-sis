@@ -88,31 +88,103 @@ export default function Page() {
         }
     }
 
-    const renderCards = (list: Student[]) =>
-        list
-            .sort((a, b) => a.First_Name.localeCompare(b.First_Name))
-            .map(student => {
-                const tags = parseInt(student.Tags, 10);
-                console.log(`StudentID: ${student.StudentID}, Name: ${student.First_Name}, Tags (decimal): ${tags}, Tags (binary): ${tags.toString(2)}`
-                );
-                return(
-                <div key={student.StudentID}
-                     className="flex flex-col items-center border p-8 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105">
-                    <img
-                        src={`/photos/${student.StudentID}.png`}
-                        alt="Profile image"
-                        className="w-20 h-20 rounded-full object-cover"
-                        onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = imagePath;
-                        }}
-                    />
-                    <div className="text-center mt-4">
-                        <div className="text-xl font-bold">{student.First_Name}</div>
-                        <div className="mt-2 scale-125">{renderTags(parseInt(student.Tags))}</div>
+    const [currentPage, setCurrentPage] = useState(1);
+    const [studentsPerPage, setStudentsPerPage] = useState(10);
+
+    const handleStudentsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setStudentsPerPage(parseInt(e.target.value, 10));
+        setCurrentPage(1); // Reset to the first page when changing the number of students per page
+    };
+
+    const renderCards = (list: Student[]) => {
+        
+        const totalPages = Math.ceil(list.length / studentsPerPage);
+
+        const handlePageChange = (page: number) => {
+            if (page >= 1 && page <= totalPages) {
+                setCurrentPage(page);
+            }
+        };
+
+        const startIndex = (currentPage - 1) * studentsPerPage;
+        const endIndex = startIndex + studentsPerPage;
+        const paginatedList = list.slice(startIndex, endIndex);
+
+        if (!list || list.length === 0) {
+            return <div className="text-center text-gray-500">No students found.</div>;
+        }
+
+        return (
+            <div>
+                <div className="flex justify-between items-center mb-4">
+                    <div>
+                        <label htmlFor="studentsPerPage" className="mr-2">Students per page:</label>
+                        <select
+                            id="studentsPerPage"
+                            value={studentsPerPage}
+                            onChange={handleStudentsPerPageChange}
+                            className="p-2 border rounded"
+                        >
+                            <option value={10}>10</option>
+                            <option value={15}>15</option>
+                            <option value={20}>20</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-300 rounded mr-2 disabled:opacity-50"
+                        >
+                            Previous
+                        </button>
+                        <span>Page {currentPage} of {totalPages}</span>
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-gray-300 rounded ml-2 disabled:opacity-50"
+                        >
+                            Next
+                        </button>
                     </div>
                 </div>
-    )});
+                <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
+                        {paginatedList
+                            .sort((a, b) => {
+                                const nameA = a.First_Name || ""; // Fallback to an empty string if null/undefined
+                                const nameB = b.First_Name || ""; // Fallback to an empty string if null/undefined
+                                return nameA.localeCompare(nameB);
+                            })
+                            .map(student => {
+                                return (
+                                    <div
+                                        key={student.StudentID}
+                                        className="flex flex-col items-center border p-2 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105"
+                                        onClick={() => {
+                                            openUpdate(student.StudentID);
+                                        }}
+                                    >
+                                        <img
+                                            src={`/photos/${student.StudentID}.png`}
+                                            alt="Profile image"
+                                            className="w-20 h-20 rounded-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.onerror = null;
+                                                e.currentTarget.src = imagePath;
+                                            }}
+                                        />
+                                        <div className="text-center mt-4">
+                                            <div className="text-xl font-bold">{`${student.First_Name} ${student.Last_Name}`}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
 
     const [role, setRole] = useState<string | null>(null);
@@ -312,13 +384,18 @@ export default function Page() {
         setShowModal(true);
     };
 
-    const openUpdate = async () => {
+    const openUpdateClick = async () => {
         if (!StudentID) return alert("Enter a Student ID first!");
-        const params = new URLSearchParams({
-            database: "database.db",
-            mode: "user",
-            StudentID: StudentID,
-        });
+        openUpdate(StudentID);
+    };
+
+    const openUpdate = async (StudentID: string) => {
+            if (!StudentID) return alert("Enter a Student ID first!");
+            const params = new URLSearchParams({
+                database: "database.db",
+                mode: "user",
+                StudentID: StudentID,
+            });
 
         const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
             method: "GET",
@@ -458,7 +535,7 @@ export default function Page() {
                     </button>}
                     <button
                         //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={openUpdate} className="bg-blue-500 text-white px-4 py-2 rounded"
+                        onClick={openUpdateClick} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
                         Update User
                     </button>
@@ -492,20 +569,30 @@ export default function Page() {
 
                 {/* Search Tab Content */}
                 {activeTab === 'search' && (
-                    <div>
-                        <div className="flex items-center w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 mb-4">
+                    <div className="w-full max-w-[90vw]">
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                handleSearch();
+                                setCurrentPage(1); // Reset to the first page on search
+                            }}
+                            className="flex items-center w-full border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 mb-4"
+                        >
                             <input
                                 type="text"
                                 placeholder="Search for Student"
                                 value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    handleSearch();
-                                }}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 className="flex-grow p-3 text-lg focus:outline-none"
                             />
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-6">
+                            <button
+                                type="submit"
+                                className="px-4 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 transition"
+                            >
+                                Search
+                            </button>
+                        </form>
+                        <div>
                             {renderCards(searchResults)}
                         </div>
                     </div>
