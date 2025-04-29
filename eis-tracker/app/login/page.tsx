@@ -8,6 +8,7 @@ export default function Page() {
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
 
+
     const handleLogin = async (e: React.FormEvent, link: string) => {
         e.preventDefault();
 
@@ -39,7 +40,7 @@ export default function Page() {
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
-                    type="text"
+                    type="password"
                     placeholder="Enter Admin Password"
                     value={pass}
                     onChange={(e) => setPass(e.target.value)}
@@ -59,6 +60,7 @@ export default function Page() {
                     <button
                         className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
                         onClick={(e) => handleLogin(e, 'admin')}
+
                     >
                         Admin
                     </button>

@@ -2,10 +2,22 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
+import { parseCookies } from "nookies";
+
+interface Student {
+    StudentID: string;
+    First_Name: string;
+    Last_Name: string;
+    Tags: string;
+    Logged_In: boolean;
+}
+
 
 export default function Page() {
     const [StudentID, setStudentID] = useState("");
-    const [name, setName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [white, setWhite] = useState(false);
     const [blue, setBlue] = useState(false);
     const [green, setGreen] = useState(false);
@@ -15,23 +27,66 @@ export default function Page() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [file, setFile] = useState<File | null>(null); // New state for file
     const [uploadMessage, setUploadMessage] = useState<string | null>(null); // Message after file upload
+    const [showModal, setShowModal] = useState(false);
+    const [formMode, setFormMode] = useState<'register' | 'update'>('register');
+    const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
+    const [viewStudents, setViewStudents] = useState(false);
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [photo, setPhoto] = useState<File | null>(null);
+
+    const [role, setRole] = useState<string | null>(null);
+    useEffect(() => {
+        const cookies = parseCookies();
+        setRole(cookies.role);  // Get the role from the cookie
+    }, []);
+
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
-    const register = async () => {
-        let res = await fetch(`${baseApiUrl}db`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ First_Name: name, Last_Name: "Smith", StudentID: StudentID, mode: 'register' }),
-        });
 
-        if (res.ok) {
-            const data = await res.json();
-            console.log('Inserted User:', data.user);
-        } else {
-            console.error('Failed to insert user');
+    const router = useRouter();
+    useEffect(() => {
+        const token = document.cookie.split('; ').find(row => row.startsWith('authToken='));
+
+        if (!token) {
+            router.push('/login');  // Redirect to /login if no authToken
         }
+    }, [router]);
+
+    const register = async () => {
+        if (formMode === 'register') {
+            if (admin || supervisor) {
+                if (!password || !confirmPassword) {
+                    alert("Both password fields are required for Admin or Supervisor!");
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    alert("Passwords do not match!");
+                    return;
+                }
+            }
+
+            const res = await fetch(`${baseApiUrl}db`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    First_Name: firstName,
+                    Last_Name: lastName,
+                    StudentID: StudentID,
+                    mode: 'register'
+                }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                console.log('Inserted User:', data.user);
+            } else {
+                console.error('Failed to insert user');
+            }
+        }
+
         let tags = 0
         if (white)      { tags |= 0b1 }
         if (blue)       { tags |= 0b10 }
@@ -40,7 +95,7 @@ export default function Page() {
         if (admin)      { tags |= 0b10000 }
         if (supervisor) { tags |= 0b100000 }
 
-        res = await fetch(`${baseApiUrl}db`, {
+        const tagRes = await fetch(`${baseApiUrl}db`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -48,12 +103,130 @@ export default function Page() {
             body: JSON.stringify({ StudentID, Tags: tags, mode: 'edit_tags' }),
         });
 
-        if (res.ok) {
+        if (tagRes.ok) {
             console.log('Updated Tags To', tags);
+            setShowModal(false);
         } else {
             console.error('Failed to update tags');
         }
+
+        if (admin || supervisor) {
+            const passRes = await fetch(`${baseApiUrl}db`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({StudentID, Password: password, mode: 'registerPwd'}),
+            });
+
+            if (passRes.ok) {
+                console.log('Added Password', tags);
+                setShowModal(false);
+            } else {
+                console.error('Failed to add password');
+            }
+        }
     }
+
+    const fetchStudents = async () => {
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "all_logged_in",
+        });
+
+        const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setLoggedInStudents(data.users || []);
+        } else {
+            console.error('Failed to fetch logged-in students');
+        }
+    };
+
+    const handleLogout = async (studentID: string, studentName: string) => {
+        const confirmLogout = window.confirm(`Are you sure you want to log out ${studentName}?`);
+        if (!confirmLogout) return;
+
+        const res = await fetch(`${baseApiUrl}db`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ StudentID: Number(studentID), mode: "logout" }),
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            console.log("Completed log:", data.log);
+        } else {
+            console.error("Failed to finish log");
+        }
+
+        fetchStudents();
+    };
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setPhoto(e.target.files[0]);
+        }
+    };
+
+    const handlePhotoUpload = async () => {
+        if (!photo) {
+            alert("Please select a file first.");
+            return;
+        }
+
+        const isZipFile = photo.name.endsWith(".zip");
+
+        if (isZipFile) {
+            const formData = new FormData();
+            formData.append('file', photo);
+
+            try {
+                const res = await fetch(`${baseApiUrl}upload-photo`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`Zip file uploaded successfully! Extracted ${data.imagesUploaded} images.`);
+                } else {
+                    alert('Failed to upload zip file');
+                }
+            } catch {
+            alert('Error uploading zip file');
+        }
+
+    } else {
+            // Handle single photo upload
+            const formData = new FormData();
+            formData.append('image', photo);
+
+            try {
+                const res = await fetch(`${baseApiUrl}upload-photo`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`Photo uploaded successfully! URL: ${data.imageUrl}`);
+                } else {
+                    alert('Failed to upload image');
+                }
+            } catch {
+                alert('Error uploading image');
+            }
+        }
+    };
+
 
     const handleDownload = async () => {
         setIsDownloading(true);
@@ -134,7 +307,9 @@ export default function Page() {
 
             if (res.ok) {
                 const data = await res.json();
-                setUploadMessage("File imported successfully!");
+                setUploadMessage(
+                  `CSV imported successfully!\nAdded: ${data.added} | Skipped: ${data.skipped} | Updated: ${data.updated}`
+                );
                 console.log(data); // Log the extracted data
             } else {
                 setUploadMessage("Error importing file.");
@@ -177,8 +352,155 @@ export default function Page() {
         fetchData();
     });
 
+
+    const openRegister = () => {
+        if (!StudentID) return alert("Enter a Student ID first!");
+        clearForm(); // clears all fields
+        setFormMode('register');
+        setShowModal(true);
+    };
+
+    const openUpdate = async () => {
+        if (!StudentID) return alert("Enter a Student ID first!");
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "user",
+            StudentID: StudentID,
+        });
+
+        const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const user = data.user;
+
+            if (!user) return alert("User not found!");
+
+            setFirstName(user.First_Name);
+            setLastName(user.Last_Name);
+
+            const tags = user.Tags ?? 0;
+            setWhite(!!(tags & 0b1));
+            setBlue(!!(tags & 0b10));
+            setGreen(!!(tags & 0b100));
+            setOrange(!!(tags & 0b1000));
+            setAdmin(!!(tags & 0b10000));
+            setSupervisor(!!(tags & 0b100000));
+
+            setFormMode('update');
+            setShowModal(true);
+        } else {
+            alert("Failed to fetch user info.");
+        }
+    };
+
+    const clearForm = () => {
+        setFirstName("");
+        setLastName("");
+        setWhite(false);
+        setBlue(false);
+        setGreen(false);
+        setOrange(false);
+        setAdmin(false);
+        setSupervisor(false);
+        setPassword("");
+        setConfirmPassword("");
+    };
+
+    useEffect(() => {
+        if (viewStudents) {
+            (async () => {
+                await fetchStudents();
+            })();
+        }
+    }, [viewStudents]);
+
+
     return (
         <div className="flex min-h-screen flex-col">
+            {viewStudents && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    {/* Modal content */}
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md space-y-4 relative">
+                        {/* Exit button inside the modal */}
+                        <button
+                            onClick={() => setViewStudents(false)}
+                            className="absolute top-4 right-4 px-4 py-2 bg-blue-500 text-white rounded z-10">
+                            Exit
+                        </button>
+                        <h2 className="text-xl font-bold">{"Logged in Students"}</h2>
+                        <div className="overflow-y-auto max-h-96">
+                            {loggedInStudents.length === 0 ? (
+                                <p>No students currently logged in.</p>
+                            ) : (
+                                loggedInStudents.map((student, index) => (
+                                    <div key={index} className="flex items-center justify-between p-2 border-b">
+                                        <div>
+                                            <strong>{student.First_Name} {student.Last_Name}</strong>
+                                        </div>
+                                        <div>
+                                            <strong>Student ID:</strong> {student.StudentID}
+                                        </div>
+                                        <div>
+                                            <button
+                                                onClick={() => handleLogout(student.StudentID, student.First_Name)}
+                                                className="px-4 py-2 bg-red-500 text-white rounded">
+                                                Logout
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md space-y-4">
+                        <h2 className="text-xl font-bold">{formMode === 'register' ? "Register User" : "Update User"}</h2>
+                        <input type="text" placeholder="First Name" value={firstName}
+                               onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded"/>
+                        <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2 border rounded" />
+                        {(admin || supervisor) && (
+                            <>
+                                <input
+                                    type="password"
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full p-2 border rounded"
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Confirm Password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full p-2 border rounded"
+                                />
+                            </>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                            <label><input type="checkbox" checked={white} onChange={() => setWhite(!white)} /> White</label>
+                            <label><input type="checkbox" checked={blue} onChange={() => setBlue(!blue)} /> Blue</label>
+                            <label><input type="checkbox" checked={green} onChange={() => setGreen(!green)} /> Green</label>
+                            <label><input type="checkbox" checked={orange} onChange={() => setOrange(!orange)} /> Orange</label>
+                            <label><input type="checkbox" checked={admin} onChange={() => setAdmin(!admin)} /> Admin</label>
+                            <label><input type="checkbox" checked={supervisor} onChange={() => setSupervisor(!supervisor)} /> Supervisor</label>
+                        </div>
+                        <div className="flex justify-between">
+                            <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                            <button onClick={register} className="px-4 py-2 bg-blue-500 text-white rounded">
+                                {formMode === 'register' ? "Register" : "Update"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
                 <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
@@ -198,76 +520,31 @@ export default function Page() {
                     onChange={(e) => setStudentID(e.target.value)}
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <input
-                    type="text"
-                    placeholder="Enter Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none"
-                />
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={white}
-                        onChange={() => setWhite(!white)}
-                    /> White Tag
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={blue}
-                        onChange={() => setBlue(!blue)}
-                    /> Blue Tag
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={green}
-                        onChange={() => setGreen(!green)}
-                    /> Green Tag
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={orange}
-                        onChange={() => setOrange(!orange)}
-                    /> Orange Tag
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={admin}
-                        onChange={() => setAdmin(!admin)}
-                    /> Admin User
-                </label>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={supervisor}
-                        onChange={() => setSupervisor(!supervisor)}
-                    /> Supervisor
-                </label>
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
-                    <button
-                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={() => register()}
+                    {role === 'admin' && <button
+                        //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        onClick={openRegister} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
                         Register User
-                    </button>
+                    </button>}
                     <button
-                        className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={() => register()}
+                        //className="px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                        onClick={openUpdate} className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
                         Update User
                     </button>
+                    <button onClick={() => setViewStudents(true)} className="bg-blue-500 text-white px-4 py-2 rounded">
+                        View Logged in Students
+                    </button>
+
                 </div>
 
                 {/* File Upload Section */}
-                <div className="mt-6">
+                {role === "admin" && (<div className="mt-6">
                     <input
-                        type="file"
-                        onChange={handleFileChange}
-                        className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            type="file"
+                            onChange={handleFileChange}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
                         className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
@@ -277,14 +554,30 @@ export default function Page() {
                     </button>
                     {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
                 </div>
-
-                <button
+                )}
+                {/* Photo Upload Section */}
+                {role==="admin" && (<div className="mt-6">
+                        <input
+                            type="file"
+                            onChange={handlePhotoChange}
+                            className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                            className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
+                            onClick={handlePhotoUpload}
+                        >
+                            Upload Photos
+                        </button>
+                        {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
+                    </div>
+                )}
+                {role === "admin" && (<button
                     onClick={handleDownload}
                     disabled={isDownloading}
                     className="mt-6 px-6 py-3 bg-green-500 text-white text-lg rounded-md hover:bg-green-600 transition disabled:opacity-50"
                 >
                     {isDownloading ? "Downloading..." : "Download Logs"}
-                </button>
+                </button>)}
                 <button
                     onClick={handleDownloadMajor}
                     disabled={isDownloading}
@@ -293,6 +586,7 @@ export default function Page() {
                     {isDownloading ? "Downloading..." : "Download Major Report"}
                     </button>
             </div>
+
         </div>
     )
 }
