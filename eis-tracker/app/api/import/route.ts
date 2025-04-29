@@ -15,14 +15,6 @@ interface StudentData {
     whiteTag: boolean;
 }
 
-interface TrainingDataRow {
-    StudentID: string;
-    BlueTag: number;
-    GreenTag: number;
-    OrangeTag: number;
-    WhiteTag: number;
-}
-
 // Disable Next.js's default body parsing for file uploads
 export const config = {
     api: {
@@ -76,7 +68,6 @@ const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
 };
 
 // Handle the POST request for file upload and CSV processing
-// Handle the POST request for file upload and CSV processing
 export async function POST(req: Request) {
 
     const formData = await req.formData();
@@ -115,7 +106,6 @@ export async function POST(req: Request) {
         let added = 0;
         let skipped = 0;
         let updated = 0; // Count students whose training data was updated
-        let insertedTraining = 0; // Count new training_data inserts separately
 
         for (const student of data) {
             if (!student.StudentID || !student.firstName || !student.lastName) {
@@ -124,69 +114,59 @@ export async function POST(req: Request) {
                 continue;
             }
 
-            // Check if student already exists
-            const existing = db.prepare('SELECT * FROM users WHERE StudentID = ?').get(student.StudentID);
-
-            if (!existing) {
-                db.prepare('INSERT INTO users (StudentID, First_Name, Last_Name) VALUES (?, ?, ?)').run(
-                    student.StudentID,
-                    student.firstName,
-                    student.lastName
-                );
-                added++;
-            } else {
-                skipped++;
-            }
-
-
-            // First, calculate the new tag values from the CSV — do this BEFORE checking trainingExists
+            const newWhite = student.whiteTag ? 1 : 0;
             const newBlue = student.blueTag ? 1 : 0;
             const newGreen = student.greenTag ? 1 : 0;
             const newOrange = student.orangeTag ? 1 : 0;
-            const newWhite = student.whiteTag ? 1 : 0;
-            // Now check if this student already has a training_data entry
-            const trainingExists = db.prepare('SELECT * FROM training_data WHERE StudentID = ?').get(student.StudentID) as TrainingDataRow | undefined;
 
-            if (!trainingExists) {
+// Check if student already exists
+            const existing = db.prepare('SELECT * FROM users WHERE StudentID = ?').get(student.StudentID) as {
+                WhiteTag: number;
+                BlueTag: number;
+                GreenTag: number;
+                OrangeTag: number;
+            } | undefined;
+
+            if (!existing) {
                 db.prepare(`
-                    INSERT INTO training_data (StudentID, BlueTag, GreenTag, OrangeTag, WhiteTag)
-                    VALUES (?, ?, ?, ?, ?)
-                `).run(
+        INSERT INTO users (StudentID, First_Name, Last_Name, WhiteTag, BlueTag, GreenTag, OrangeTag)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
                     student.StudentID,
+                    student.firstName,
+                    student.lastName,
+                    newWhite,
                     newBlue,
                     newGreen,
-                    newOrange,
-                    newWhite
+                    newOrange
                 );
-                insertedTraining++; // ✅ new training entry
-
+                added++;
             } else {
-                const currentBlue = trainingExists.BlueTag == null ? 0 : Number(trainingExists.BlueTag);
-                const currentGreen = trainingExists.GreenTag == null ? 0 : Number(trainingExists.GreenTag);
-                const currentOrange = trainingExists.OrangeTag == null ? 0 : Number(trainingExists.OrangeTag);
-                const currentWhite = trainingExists.WhiteTag == null ? 0 : Number(trainingExists.WhiteTag);
+                const currentWhite = existing.WhiteTag ? 1 : 0;
+                const currentBlue = existing.BlueTag ? 1 : 0;
+                const currentGreen = existing.GreenTag ? 1 : 0;
+                const currentOrange = existing.OrangeTag ? 1 : 0;
 
                 if (
+                    currentWhite !== newWhite ||
                     currentBlue !== newBlue ||
                     currentGreen !== newGreen ||
-                    currentOrange !== newOrange ||
-                    currentWhite !== newWhite
+                    currentOrange !== newOrange
                 ) {
                     db.prepare(`
-                        UPDATE training_data
-                        SET BlueTag   = ?,
-                            GreenTag  = ?,
-                            OrangeTag = ?,
-                            WhiteTag  = ?
-                        WHERE StudentID = ?
-                    `).run(
+            UPDATE users
+            SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?
+            WHERE StudentID = ?
+        `).run(
+                        newWhite,
                         newBlue,
                         newGreen,
                         newOrange,
-                        newWhite,
                         student.StudentID
                     );
-                    updated++; // ✅ only if values changed
+                    updated++;
+                } else {
+                    skipped++;
                 }
             }
         }
@@ -203,7 +183,6 @@ export async function POST(req: Request) {
             added,
             skipped,
             updated,
-            insertedTraining
         }), {status: 200});
     } catch (error) {
         return new Response(JSON.stringify({message: 'Error processing the file', error}), {status: 500});
