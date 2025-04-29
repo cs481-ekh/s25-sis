@@ -51,17 +51,29 @@ export async function GET(req: Request) {
 
         } else {
             // Default: export all logs
-            const logs = db.prepare("SELECT LogID, User AS StudentID, Time_In, Time_Out FROM logs").all() as Array<{
+            const logs = db.prepare(`
+                SELECT 
+                    l.LogID, 
+                    l.User AS StudentID, 
+                    l.Time_In, 
+                    l.Time_Out, 
+                    u.Major,
+                    u.Other
+                FROM logs l
+                JOIN users u ON l.User = u.StudentID
+            `).all() as Array<{
                 LogID: number;
                 StudentID: number;
                 Time_In: number | null;
                 Time_Out: number | null;
+                Major: string | null;
+                Other: string | null;
             }>;
 
-            csvContent += `"LogID","StudentID","Time_In","Time_Out"\n`;
+            csvContent += `"LogID","StudentID","Time_In","Time_Out","Major","Other"\n`;
 
             logs.forEach(log => {
-                csvContent += `${formatValue(log.LogID)},${formatValue(log.StudentID)},${formatDate(log.Time_In)},${formatDate(log.Time_Out)}\n`;
+                csvContent += `${formatValue(log.LogID)},${formatValue(log.StudentID)},${formatDate(log.Time_In)},${formatDate(log.Time_Out)},${formatValue(log.Major)},${formatValue(log.Other)}\n`;
             });
         }
 
