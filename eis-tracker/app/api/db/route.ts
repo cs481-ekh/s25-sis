@@ -71,13 +71,14 @@ export async function GET(request: Request) {
         return new Response(JSON.stringify({ message: 'Log not found' }), { status: 400 });
       return new Response(JSON.stringify({ log }), { status: 200 });
     } else if (mode === 'MANUAL') {
-      const sql = url.searchParams.get('sql');
-      if (sql === null || sql === undefined || sql === '') {
-        return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
-      }
-      const result = db.prepare(sql).all();
-      return new Response(JSON.stringify({ result }), { status: 200 });
-    } else if (mode == 'IDCARD'){
+      return new Response(JSON.stringify({ message: 'DISABLED MODE' }), { status: 400 });
+      // const sql = url.searchParams.get('sql');
+      // if (sql === null || sql === undefined || sql === '') {
+      //   return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
+      // }
+      // const result = db.prepare(sql).all();
+      // return new Response(JSON.stringify({ result }), { status: 200 });
+    } else if (mode === 'IDCARD'){
       const CardID = url.searchParams.get('CardID');
       const user = db.prepare('SELECT * FROM users WHERE CardID = (?)').get(CardID);
       if(user === undefined) 
@@ -289,12 +290,13 @@ export async function POST(request: Request) {
 
 
   else if (data.mode === 'MANUAL') {
-    const sql = data.sql;
-    if (sql === null || sql === undefined || sql === '') {
-      return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
-    }
-    const result = db.prepare(sql).all();
-    return new Response(JSON.stringify({ result }), { status: 200 });
+    return new Response(JSON.stringify({ message: 'DISABLED MODE' }), { status: 400 });
+    // const sql = data.sql;
+    // if (sql === null || sql === undefined || sql === '') {
+    //   return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
+    // }
+    // const result = db.prepare(sql).all();
+    // return new Response(JSON.stringify({ result }), { status: 200 });
   } else if (data.mode === 'edit_tags') {
     if (data.StudentID === undefined || data.Tags === undefined) {
       return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
@@ -387,12 +389,13 @@ export async function DELETE(request: Request) {
     }
   db.prepare('DELETE FROM users WHERE StudentID = (?)').run(data.StudentID);
   } else if(data.mode === 'MANUAL') {
-    const sql = data.sql;
-    if (sql === null || sql === undefined || sql === '') {
-      return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
-    }
-    const res = db.prepare(sql).all();
-    return new Response(JSON.stringify({ res }), { status: 200 });
+    return new Response(JSON.stringify({ message: 'DISABLED MODE' }), { status: 400 });
+    // const sql = data.sql;
+    // if (sql === null || sql === undefined || sql === '') {
+    //   return new Response(JSON.stringify({ message: 'No SQL query provided' }), { status: 400 });
+    // }
+    // const res = db.prepare(sql).all();
+    // return new Response(JSON.stringify({ res }), { status: 200 });
   } else {
     return new Response(JSON.stringify({ message: 'Invalid mode' }), { status: 400 });
   }
