@@ -6,8 +6,9 @@ import Link from "next/link";
 interface Student {
     StudentID: string;
     First_Name: string;
-    Tags: string;
+    Tags: number;
     Logged_In: boolean;
+    TotalHours?: number;
 }
 
 export default function Dashboard() {
@@ -118,7 +119,7 @@ export default function Dashboard() {
         list
             .sort((a, b) => a.First_Name.localeCompare(b.First_Name))
             .map(student => {
-                const tags = parseInt(student.Tags, 10);
+                const tags = student.Tags;
                 console.log(`StudentID: ${student.StudentID}, Name: ${student.First_Name}, Tags (decimal): ${tags}, Tags (binary): ${tags.toString(2)}`
                 );
                 return(
@@ -135,7 +136,10 @@ export default function Dashboard() {
                     />
                     <div className="text-center mt-4">
                         <div className="text-xl font-bold">{student.First_Name}</div>
-                        <div className="mt-2 scale-125">{renderTags(parseInt(student.Tags))}</div>
+                        <div className="mt-2 scale-125">{renderTags(student.Tags)}</div>
+                        <div className="text-sm text-gray-600 mt-2">
+                            <strong>Hours:</strong> {student.TotalHours ?? "0.00"}
+                        </div>
                     </div>
                 </div>
                 )});
