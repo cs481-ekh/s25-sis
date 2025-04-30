@@ -462,7 +462,8 @@ export default function Page() {
 
         createTable();
         fetchData();
-    });
+    }, []); // ✅ Prevents infinite re-renders
+
 
 
     const openRegister = () => {

@@ -1,8 +1,7 @@
 import {NextRequest, NextResponse} from 'next/server';
-import * as fs from 'fs';
 import csv from 'csv-parser';
-import path from 'path';
 import Database from 'better-sqlite3';
+import { Readable } from 'stream';
 
 // Define the structure of the data we're interested in
 interface StudentData {
@@ -22,30 +21,26 @@ export const config = {
     },
 };
 
-// Function to extract relevant data from CSV
-const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
+const extractDataFromBuffer = async (buffer: ArrayBuffer): Promise<StudentData[]> => {
     const results: StudentData[] = [];
     let firstRowProcessed = false;
 
-    // Using a Promise wrapper around the stream process
     return new Promise((resolve, reject) => {
-        const stream = fs.createReadStream(filePath).pipe(csv());
+        const stream = Readable.from(Buffer.from(buffer)).pipe(csv());
 
         stream
             .on('data', (row: { [key: string]: string }) => {
                 if (!firstRowProcessed) {
                     firstRowProcessed = true;
-                    return; // Skip the first row
+                    return;
                 }
 
-                if (row['Student'] === 'Student, Test') {
-                    return; // Skip the test student row
-                }
+                if (row['Student'] === 'Student, Test') return;
 
                 const fullName = row['Student'];
-                const [lastName, firstName] = fullName.split(',').map((name: string) => name.trim());
+                const [lastName, firstName] = fullName.split(',').map((n: string) => n.trim());
 
-                const studentData: StudentData = {
+                results.push({
                     firstName: firstName || '',
                     lastName: lastName || '',
                     StudentID: row['SIS User ID'] || '',
@@ -53,17 +48,13 @@ const extractDataFromCSV = async (filePath: string): Promise<StudentData[]> => {
                     greenTag: Number(row['GREEN TAG (293966)']) === 100,
                     orangeTag: Number(row['ORANGE TAG (294239)']) === 100,
                     whiteTag: Number(row['Training Affirmation (Required)  (228040)']) === 100,
-                };
-
-                results.push(studentData);
+                });
             })
             .on('end', () => {
-                results.pop(); // Remove the last test student
-                resolve(results); // Resolve the promise with the final results
+                results.pop(); // Remove test student
+                resolve(results);
             })
-            .on('error', (err) => {
-                reject(err); // Reject the promise in case of error
-            });
+            .on('error', (err) => reject(err));
     });
 };
 
@@ -81,24 +72,10 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({message: 'Invalid file upload'}), {status: 400});
     }
 
-    const filePath = `./.tmp/${file.name}`;
     const buffer = await file.arrayBuffer();
-    // await fs.promises.writeFile(filePath, Buffer.from(buffer));
-
-    const dirPath = path.dirname(filePath);
-    try {
-        await fs.promises.access(dirPath);
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            await fs.promises.mkdir(dirPath, {recursive: true});
-        } else {
-            throw error;
-        }
-    }
-    await fs.promises.writeFile(filePath, Buffer.from(buffer));
 
     try {
-        const data = await extractDataFromCSV(filePath);
+        const data = await extractDataFromBuffer(buffer);
         // Open the database connection
         const db = new Database('database/database.db');
 
@@ -170,14 +147,7 @@ export async function POST(req: Request) {
                 }
             }
         }
-        try {
-            if (true) { // Set to true to delete the file after processing
-                await fs.promises.unlink(filePath); // Delete the file after processing
-                await fs.promises.rm(dirPath, {recursive: true, force: true}); // Remove the directory if empty
-            }
-        } catch (err) {
-            console.error('Error deleting file:', err);
-        }
+
         return new Response(JSON.stringify({
             message: 'CSV imported successfully',
             added,
