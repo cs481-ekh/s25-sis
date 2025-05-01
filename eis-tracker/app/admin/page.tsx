@@ -9,8 +9,9 @@ interface Student {
     StudentID: string;
     First_Name: string;
     Last_Name: string;
-    Tags: string;
+    Tags: number;
     Logged_In: boolean;
+    TotalHours?: number;
 }
 
 
@@ -73,6 +74,23 @@ export default function Page() {
     const handleStudentsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setStudentsPerPage(parseInt(e.target.value, 10));
         setCurrentPage(1); // Reset to the first page when changing the number of students per page
+    };
+
+    const renderTags = (tags: number) => {
+        const tagElements = [];
+        if (tags & 1) {
+            tagElements.push(<div key="white" className="w-6 h-6 bg-white border rounded mr-1" title="White" />);
+        }
+        if (tags & 2) {
+            tagElements.push(<div key="blue" className="w-6 h-6 bg-blue-500 border rounded mr-1" title="Blue" />);
+        }
+        if (tags & 4) {
+            tagElements.push(<div key="green" className="w-6 h-6 bg-green-500 border rounded mr-1" title="Green" />);
+        }
+        if (tags & 8) {
+            tagElements.push(<div key="orange" className="w-6 h-6 bg-orange-500 border rounded mr-1" title="Orange" />);
+        }
+        return <div className="flex justify-center mt-2">{tagElements}</div>;
     };
 
     const renderCards = (list: Student[]) => {
@@ -155,10 +173,15 @@ export default function Page() {
                                         />
                                         <div className="text-center mt-4">
                                             <div className="text-xl font-bold">{`${student.First_Name} ${student.Last_Name}`}</div>
+                                            <div className="mt-2">{renderTags(Number(student.Tags))}</div>
+                                            <div className="text-sm text-gray-600 mt-1">
+                                                <strong>Hours:</strong> {student.TotalHours?.toFixed(2) ?? "0.00"}
+                                            </div>
                                         </div>
                                     </div>
                                 );
-                            })}
+                            })
+                        }
                     </div>
                 </div>
             </div>
@@ -501,13 +524,13 @@ export default function Page() {
             setFirstName(user.First_Name);
             setLastName(user.Last_Name);
 
-            const tags = user.Tags ?? 0;
-            setWhite(!!(tags & 0b1));
-            setBlue(!!(tags & 0b10));
-            setGreen(!!(tags & 0b100));
-            setOrange(!!(tags & 0b1000));
-            setAdmin(!!(tags & 0b10000));
-            setSupervisor(!!(tags & 0b100000));
+            const tags = Number(user.Tags ?? 0);  // Ensure it's a number
+            setWhite((tags & 0b1) !== 0);
+            setBlue((tags & 0b10) !== 0);
+            setGreen((tags & 0b100) !== 0);
+            setOrange((tags & 0b1000) !== 0);
+            setAdmin((tags & 0b10000) !== 0);
+            setSupervisor((tags & 0b100000) !== 0);
 
             setFormMode('update');
             setShowModal(true);
