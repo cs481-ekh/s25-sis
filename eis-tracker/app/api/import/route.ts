@@ -61,9 +61,11 @@ const extractDataFromBuffer = async (buffer: ArrayBuffer): Promise<StudentData[]
 // Handle the POST request for file upload and CSV processing
 export async function POST(req: Request) {
 
+    console.log("📥 [IMPORT] Received CSV file upload request");
+
     const formData = await req.formData();
     const file = formData.get('file');
-    console.log("form data", formData, file);
+    console.log("📥 [IMPORT] FormData parsed. File field present:", !!file);
     if (!file) {
         return new Response(JSON.stringify({message: 'Bad upload'}), {status: 500});
     }
@@ -72,10 +74,13 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({message: 'Invalid file upload'}), {status: 400});
     }
 
+    console.log("🔄 [IMPORT] Converting file to ArrayBuffer...");
     const buffer = await file.arrayBuffer();
+    console.log("✅ [IMPORT] Buffer size:", buffer.byteLength, "bytes");
 
     try {
         const data = await extractDataFromBuffer(buffer);
+        console.log("✅ [IMPORT] CSV parsed into", data.length, "student rows");
         // Open the database connection
         const db = new Database('database/database.db');
 
@@ -85,6 +90,7 @@ export async function POST(req: Request) {
         let updated = 0; // Count students whose training data was updated
 
         for (const student of data) {
+            console.log(`👤 [IMPORT] Processing student: ${student.StudentID} - ${student.firstName} ${student.lastName}`);
             if (!student.StudentID || !student.firstName || !student.lastName) {
                 console.warn(`Skipping invalid student entry:`, student);
                 skipped++;
@@ -118,6 +124,7 @@ export async function POST(req: Request) {
                     newOrange
                 );
                 added++;
+                console.log(`🆕 [IMPORT] Inserted new student: ${student.StudentID}`);
             } else {
                 const currentWhite = existing.WhiteTag ? 1 : 0;
                 const currentBlue = existing.BlueTag ? 1 : 0;
@@ -142,12 +149,14 @@ export async function POST(req: Request) {
                         student.StudentID
                     );
                     updated++;
+                    console.log(`♻️ [IMPORT] Updated existing student: ${student.StudentID}`);
                 } else {
                     skipped++;
+                    console.log(`⏭️ [IMPORT] Skipped student (no change): ${student.StudentID}`);
                 }
             }
         }
-
+        console.log(`📊 [IMPORT] Summary — Added: ${added}, Skipped: ${skipped}, Updated: ${updated}`);
         return new Response(JSON.stringify({
             message: 'CSV imported successfully',
             added,
@@ -155,8 +164,8 @@ export async function POST(req: Request) {
             updated,
         }), {status: 200});
     } catch (error) {
-        return new Response(JSON.stringify({message: 'Error processing the file', error}), {status: 500});
-
+        console.error("❌ [IMPORT] Exception during import:", error);
+        return new Response(JSON.stringify({message: 'Server error during CSV import'}), {status: 500});
     }
 }
 
