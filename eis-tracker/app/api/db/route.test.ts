@@ -10,23 +10,39 @@ describe('database tests', () => {
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath); // Deletes the file
         }
+
         const db = new Database(filePath, { verbose: void 0 });
-        db.prepare('CREATE TABLE if NOT EXISTS users (StudentID INTEGER PRIMARY KEY UNIQUE,' +
-            ' First_Name TEXT,' +
-            ' Last_Name TEXT,' +
-            ' Tags INTEGER NOT NULL DEFAULT 0,' +
-            ' Active BOOLEAN NOT NULL DEFAULT FALSE,' +
-            ' Logged_In BOOLEAN NOT NULL DEFAULT FALSE,' +
-            ' Major TEXT DEFAULT NULL,' +
-            ' CardID TEXT DEFAULT NULL)'
-          ).run();
-        db.prepare('CREATE TABLE if NOT EXISTS logs (LogID INTEGER PRIMARY KEY AUTOINCREMENT,' +
-            ' Time_In INTEGER,' +
-            ' Time_Out INTEGER,' +
-            ' Supervising INTEGER DEFAULT NULL,' +
-            ' User INTEGER REFERENCES users(StudentID) ON DELETE RESTRICT ON UPDATE CASCADE)'
-        ).run();
-        db.close(); // Close the database connection
+
+        // ✅ Updated schema with all expected columns
+        db.prepare(`
+        CREATE TABLE IF NOT EXISTS users (
+            StudentID INTEGER PRIMARY KEY UNIQUE,
+            First_Name TEXT,
+            Last_Name TEXT,
+            Tags INTEGER NOT NULL DEFAULT 0,
+            Active BOOLEAN NOT NULL DEFAULT FALSE,
+            Logged_In BOOLEAN NOT NULL DEFAULT FALSE,
+            Major TEXT DEFAULT NULL,
+            CardID TEXT DEFAULT NULL,
+            WhiteTag BOOLEAN NOT NULL DEFAULT 0,
+            BlueTag BOOLEAN NOT NULL DEFAULT 0,
+            GreenTag BOOLEAN NOT NULL DEFAULT 0,
+            OrangeTag BOOLEAN NOT NULL DEFAULT 0,
+            PurpleTag BOOLEAN NOT NULL DEFAULT 0
+        )
+    `).run();
+
+        db.prepare(`
+        CREATE TABLE IF NOT EXISTS logs (
+            LogID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Time_In INTEGER,
+            Time_Out INTEGER,
+            Supervising INTEGER DEFAULT NULL,
+            User INTEGER REFERENCES users(StudentID) ON DELETE RESTRICT ON UPDATE CASCADE
+        )
+    `).run();
+
+        db.close();
     });
 
     // Runs once after all tests

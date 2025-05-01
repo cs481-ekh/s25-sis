@@ -58,13 +58,44 @@ export async function GET(request: Request) {
 
     const mode = url.searchParams.get('mode');
 
-    if (mode === 'user') {
-      const StudentID = url.searchParams.get('StudentID');
-      const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(StudentID);
-      if(user === undefined) 
-        return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
-      return new Response(JSON.stringify({ user }), { status: 200 });
-    } else if (mode === 'log') {
+      if (mode === 'user') {
+          const StudentID = url.searchParams.get('StudentID');
+          if (!StudentID) {
+              return new Response(JSON.stringify({ message: 'StudentID is required' }), { status: 400 });
+          }
+
+          const now = Date.now();
+          const user = db.prepare(`
+              SELECT
+                  StudentID,
+                  First_Name,
+                  Last_Name,
+                  Logged_In,
+                  (WhiteTag * 1 +
+                   BlueTag * 2 +
+                   GreenTag * 4 +
+                   OrangeTag * 8 +
+                   PurpleTag * 16) AS Tags,
+                  ROUND((
+                            SELECT SUM(
+                                           CASE
+                                               WHEN Time_Out IS NOT NULL THEN (Time_Out - Time_In)
+                                               ELSE (? - Time_In)
+                                               END
+                                   ) / 3600000.0
+                            FROM logs
+                            WHERE logs.User = users.StudentID
+                        ), 2) AS TotalHours
+              FROM users
+              WHERE StudentID = ?
+          `).get(now, StudentID);
+
+          if (!user) {
+              return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
+          }
+
+          return new Response(JSON.stringify({ user }), { status: 200 });
+      } else if (mode === 'log') {
       const LogID = url.searchParams.get('LogID');
       const log = db.prepare('SELECT * FROM logs WHERE LogID = (?)').get(LogID);
       if(log === undefined) 
@@ -129,7 +160,31 @@ export async function GET(request: Request) {
       return new Response(JSON.stringify({log}), {status: 200});
     } else if (mode === 'search') {
       const search = url.searchParams.get('search');
-      const users = db.prepare(`SELECT * FROM users WHERE First_Name LIKE ? OR Last_Name LIKE ? OR StudentID LIKE ? OR (First_Name || ' ' || Last_Name) LIKE ?`).all(`%${search}%`, `%${search}%`,`%${search}%`,`%${search}%`);
+      const now = Date.now();
+      const users = db.prepare(`
+  SELECT
+    StudentID,
+    First_Name,
+    Last_Name,
+    Logged_In,
+    (WhiteTag * 1 +
+     BlueTag * 2 +
+     GreenTag * 4 +
+     OrangeTag * 8 +
+     PurpleTag * 16) AS Tags,
+    ROUND((SELECT SUM(
+                     CASE
+                       WHEN Time_Out IS NOT NULL THEN (Time_Out - Time_In)
+                       ELSE (? - Time_In)
+                     END
+                   ) / 3600000.0
+           FROM logs
+           WHERE logs.User = users.StudentID
+         ), 2) AS TotalHours
+  FROM users
+  WHERE First_Name LIKE ? OR Last_Name LIKE ? OR StudentID LIKE ? OR (First_Name || ' ' || Last_Name) LIKE ?
+`).all(now, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+
       return new Response(JSON.stringify({ users }), { status: 200 });
     }
     } else {
