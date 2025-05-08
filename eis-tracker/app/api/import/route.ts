@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({message: 'Bad upload'}), {status: 500});
     }
 
-    if (!file || typeof file !== 'object' || typeof (file as any).arrayBuffer !== 'function') {
+    if (!file || typeof file !== 'object' || typeof file.arrayBuffer !== 'function') {
         return new Response(JSON.stringify({message: 'Invalid file upload'}), {status: 400});
     }
 
