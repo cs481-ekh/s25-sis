@@ -11,11 +11,13 @@ export async function POST(req: Request) {
         const formData = await req.formData();
         // pull from either key
         const file = formData.get('file') ?? formData.get('image');
-        if (!file || !(file instanceof File)) {
+
+        if (!file || typeof file !== 'object' || typeof file.arrayBuffer !== 'function') {
             return new Response(JSON.stringify({
                 error: 'No file uploaded or invalid file type'
             }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
+
 
         const fileName = file.name.toLowerCase();
         // write into your public folder

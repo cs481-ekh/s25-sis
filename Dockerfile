@@ -6,6 +6,8 @@ FROM node:18-alpine
 # Copy the whole project into the container
 COPY eis-tracker/ ./
 
+RUN mkdir -p public/photos && chmod -R 777 public
+
 # Install dependencies and build the Next.js app
 RUN npm install
 

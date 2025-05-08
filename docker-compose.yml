@@ -6,7 +6,8 @@ services:
     ports:
       - "${HOST_PORT:-8081}:3000"
     volumes:
-      - ./eis-tracker/database:/eis-tracker/database
+      - ./eis-tracker/database:/database
+      - ./eis-tracker/public/photos:/public/photos
     environment:
       - NODE_ENV=production
     restart: unless-stopped
