@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     } catch (e) {
         console.error("❌ Failed to parse FormData from request");
         console.error("Error:", e);
-        return new Response(JSON.stringify({ message: 'Failed to parse upload' }), { status: 400 });
+        return new Response(JSON.stringify({message: 'Failed to parse upload'}), {status: 400});
     }
 
     const file = formData.get('file');
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
 
     if (!isFile(file)) {
         console.error("❌ Uploaded entry is not a File object:", file);
-        return new Response(JSON.stringify({ message: 'Invalid file upload' }), { status: 400 });
+        return new Response(JSON.stringify({message: 'Invalid file upload'}), {status: 400});
     }
 
     console.log("📁 Uploaded file name:", file.name);
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
 
     if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
         console.error("❌ File is not a valid CSV. Detected type:", file.type);
-        return new Response(JSON.stringify({ message: 'Only CSV files are accepted' }), { status: 415 });
+        return new Response(JSON.stringify({message: 'Only CSV files are accepted'}), {status: 415});
     }
 
     let buffer: ArrayBuffer;
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
     } catch (e) {
         console.error("❌ Failed to convert uploaded file to buffer");
         console.error("Error:", e);
-        return new Response(JSON.stringify({ message: 'Failed to read file buffer' }), { status: 500 });
+        return new Response(JSON.stringify({message: 'Failed to read file buffer'}), {status: 500});
     }
 
     try {
@@ -118,11 +118,15 @@ export async function POST(req: Request) {
         try {
             db = new Database('database/database.db');
             console.log("📂 Connected to database");
-        } catch (dbErr: any) {
-            console.error("❌ Failed to connect to database");
-            console.error("Error message:", dbErr.message);
-            console.error("Stack trace:", dbErr.stack);
-            return new Response(JSON.stringify({ message: 'Database connection error' }), { status: 500 });
+        } catch (dbErr: unknown) {
+            if (dbErr instanceof Error) {
+                console.error("❌ Failed to connect to database");
+                console.error("Error message:", dbErr.message);
+                console.error("Stack trace:", dbErr.stack);
+            } else {
+                console.error("❌ DB error (non-standard):", dbErr);
+            }
+            return new Response(JSON.stringify({message: 'Database connection error'}), {status: 500});
         }
 
         let added = 0, skipped = 0, updated = 0;
@@ -172,7 +176,10 @@ export async function POST(req: Request) {
                     ) {
                         db.prepare(`
                             UPDATE users
-                            SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?
+                            SET WhiteTag  = ?,
+                                BlueTag   = ?,
+                                GreenTag  = ?,
+                                OrangeTag = ?
                             WHERE StudentID = ?
                         `).run(newWhite, newBlue, newGreen, newOrange, student.StudentID);
                         updated++;
@@ -189,19 +196,26 @@ export async function POST(req: Request) {
         }
 
         console.log(`📊 Import Summary — Total rows: ${data.length}, Added: ${added}, Updated: ${updated}, Skipped: ${skipped}`);
-        return new Response(JSON.stringify({ message: 'Import complete', added, updated, skipped }), { status: 200 });
+        return new Response(JSON.stringify({message: 'Import complete', added, updated, skipped}), {status: 200});
 
-    } catch (e: any) {
-        console.error("❌ [IMPORT] Unexpected failure during CSV processing");
-        console.error("Error message:", e?.message);
-        console.error("Stack trace:", e?.stack);
-        return new Response(JSON.stringify({
-            message: 'Server error during CSV import',
-            error: e?.message || 'Unknown error'
-        }), { status: 500 });
+    } catch (e: unknown) {
+        if (e instanceof Error) {
+            console.error("❌ [IMPORT] Unexpected failure during CSV processing");
+            console.error("Error message:", e.message);
+            console.error("Stack trace:", e.stack);
+            return new Response(JSON.stringify({
+                message: 'Server error during CSV import',
+                error: e.message
+            }), {status: 500});
+        } else {
+            console.error("❌ Unknown error during CSV import:", e);
+            return new Response(JSON.stringify({
+                message: 'Server error during CSV import',
+                error: 'Unknown error'
+            }), {status: 500});
+        }
     }
 }
-
 // Handle other HTTP methods (e.g., GET)
 export async function GET(req: NextRequest) {
     try {
