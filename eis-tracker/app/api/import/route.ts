@@ -70,9 +70,10 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({message: 'Bad upload'}), {status: 500});
     }
 
-    if (!(file instanceof File)) {
+    if (!file || typeof file !== 'object' || typeof (file as any).arrayBuffer !== 'function') {
         return new Response(JSON.stringify({message: 'Invalid file upload'}), {status: 400});
     }
+
 
     console.log("🔄 [IMPORT] Converting file to ArrayBuffer...");
     const buffer = await file.arrayBuffer();
