@@ -58,6 +58,11 @@ const extractDataFromBuffer = async (buffer: ArrayBuffer): Promise<StudentData[]
     });
 };
 
+// ✅ Add this type guard below your CSV parser function:
+function isFile(value: unknown): value is File {
+    return value instanceof File;
+}
+
 // Handle the POST request for file upload and CSV processing
 export async function POST(req: Request) {
 
@@ -70,10 +75,15 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({message: 'Bad upload'}), {status: 500});
     }
 
-    if (!file || typeof file !== 'object' || typeof file.arrayBuffer !== 'function') {
-        return new Response(JSON.stringify({message: 'Invalid file upload'}), {status: 400});
+    if (!isFile(file)) {
+        console.error("❌ [IMPORT] Uploaded file is not a File object");
+        return new Response(JSON.stringify({ message: 'Invalid file upload: expected a File' }), { status: 400 });
     }
 
+    if (!file.name.endsWith('.csv')) {
+        console.error("❌ [IMPORT] File does not have .csv extension:", file.name);
+        return new Response(JSON.stringify({ message: 'Only .csv files are allowed' }), { status: 415 });
+    }
 
     console.log("🔄 [IMPORT] Converting file to ArrayBuffer...");
     const buffer = await file.arrayBuffer();
