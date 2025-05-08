@@ -30,6 +30,7 @@ const extractDataFromBuffer = async (buffer: ArrayBuffer): Promise<StudentData[]
 
         stream
             .on('data', (row: { [key: string]: string }) => {
+                console.log("🔎 Raw CSV row:", row);
                 if (!firstRowProcessed) {
                     firstRowProcessed = true;
                     return;
@@ -65,118 +66,125 @@ function isFile(value: unknown): value is File {
 
 // Handle the POST request for file upload and CSV processing
 export async function POST(req: Request) {
+    console.log("📥 Received POST /api/import request");
 
-    console.log("📥 [IMPORT] Received CSV file upload request");
-
-    const formData = await req.formData();
-    const file = formData.get('file');
-    console.log("📥 [IMPORT] FormData parsed. File field present:", !!file);
-    if (!file) {
-        return new Response(JSON.stringify({message: 'Bad upload'}), {status: 500});
+    let formData: FormData;
+    try {
+        formData = await req.formData();
+    } catch (e) {
+        console.error("❌ Failed to parse FormData from request");
+        console.error("Error:", e);
+        return new Response(JSON.stringify({ message: 'Failed to parse upload' }), { status: 400 });
     }
+
+    const file = formData.get('file');
+    console.log("📥 FormData received. file field type:", typeof file);
 
     if (!isFile(file)) {
-        console.error("❌ [IMPORT] Uploaded file is not a File object");
-        return new Response(JSON.stringify({ message: 'Invalid file upload: expected a File' }), { status: 400 });
+        console.error("❌ Uploaded entry is not a File object:", file);
+        return new Response(JSON.stringify({ message: 'Invalid file upload' }), { status: 400 });
     }
 
-    if (!file.name.endsWith('.csv')) {
-        console.error("❌ [IMPORT] File does not have .csv extension:", file.name);
-        return new Response(JSON.stringify({ message: 'Only .csv files are allowed' }), { status: 415 });
+    console.log("📁 Uploaded file name:", file.name);
+    console.log("📁 File MIME type:", file.type);
+    console.log("📁 File size:", file.size, "bytes");
+
+    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        console.error("❌ File is not a valid CSV. Detected type:", file.type);
+        return new Response(JSON.stringify({ message: 'Only CSV files are accepted' }), { status: 415 });
     }
 
-    console.log("🔄 [IMPORT] Converting file to ArrayBuffer...");
-    const buffer = await file.arrayBuffer();
-    console.log("✅ [IMPORT] Buffer size:", buffer.byteLength, "bytes");
+    let buffer: ArrayBuffer;
+    try {
+        buffer = await file.arrayBuffer();
+        console.log("📦 Converted file to ArrayBuffer, size:", buffer.byteLength);
+    } catch (e) {
+        console.error("❌ Failed to convert uploaded file to buffer");
+        console.error("Error:", e);
+        return new Response(JSON.stringify({ message: 'Failed to read file buffer' }), { status: 500 });
+    }
 
     try {
         const data = await extractDataFromBuffer(buffer);
-        console.log("✅ [IMPORT] CSV parsed into", data.length, "student rows");
-        // Open the database connection
-        const db = new Database('database/database.db');
+        console.log("✅ Extracted", data.length, "students from CSV");
 
-        // Counters for success summary
-        let added = 0;
-        let skipped = 0;
-        let updated = 0; // Count students whose training data was updated
+        const db = new Database('database/database.db');
+        console.log("📂 Connected to database");
+
+        let added = 0, skipped = 0, updated = 0;
 
         for (const student of data) {
-            console.log(`👤 [IMPORT] Processing student: ${student.StudentID} - ${student.firstName} ${student.lastName}`);
-            if (!student.StudentID || !student.firstName || !student.lastName) {
-                console.warn(`Skipping invalid student entry:`, student);
-                skipped++;
-                continue;
-            }
+            try {
+                console.log(`🔍 Checking student ${student.StudentID} (${student.firstName} ${student.lastName})`);
+                if (!student.StudentID || !student.firstName || !student.lastName) {
+                    console.warn("⚠️ Skipping invalid row:", student);
+                    skipped++;
+                    continue;
+                }
 
-            const newWhite = student.whiteTag ? 1 : 0;
-            const newBlue = student.blueTag ? 1 : 0;
-            const newGreen = student.greenTag ? 1 : 0;
-            const newOrange = student.orangeTag ? 1 : 0;
+                const existing = db.prepare('SELECT * FROM users WHERE StudentID = ?').get(student.StudentID) as {
+                    WhiteTag: number;
+                    BlueTag: number;
+                    GreenTag: number;
+                    OrangeTag: number;
+                } | undefined;
 
-// Check if student already exists
-            const existing = db.prepare('SELECT * FROM users WHERE StudentID = ?').get(student.StudentID) as {
-                WhiteTag: number;
-                BlueTag: number;
-                GreenTag: number;
-                OrangeTag: number;
-            } | undefined;
+                const newWhite = student.whiteTag ? 1 : 0;
+                const newBlue = student.blueTag ? 1 : 0;
+                const newGreen = student.greenTag ? 1 : 0;
+                const newOrange = student.orangeTag ? 1 : 0;
 
-            if (!existing) {
-                db.prepare(`
-        INSERT INTO users (StudentID, First_Name, Last_Name, WhiteTag, BlueTag, GreenTag, OrangeTag)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-                    student.StudentID,
-                    student.firstName,
-                    student.lastName,
-                    newWhite,
-                    newBlue,
-                    newGreen,
-                    newOrange
-                );
-                added++;
-                console.log(`🆕 [IMPORT] Inserted new student: ${student.StudentID}`);
-            } else {
-                const currentWhite = existing.WhiteTag ? 1 : 0;
-                const currentBlue = existing.BlueTag ? 1 : 0;
-                const currentGreen = existing.GreenTag ? 1 : 0;
-                const currentOrange = existing.OrangeTag ? 1 : 0;
-
-                if (
-                    currentWhite !== newWhite ||
-                    currentBlue !== newBlue ||
-                    currentGreen !== newGreen ||
-                    currentOrange !== newOrange
-                ) {
+                if (!existing) {
                     db.prepare(`
-            UPDATE users
-            SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?
-            WHERE StudentID = ?
-        `).run(
+                        INSERT INTO users (StudentID, First_Name, Last_Name, WhiteTag, BlueTag, GreenTag, OrangeTag)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `).run(
+                        student.StudentID,
+                        student.firstName,
+                        student.lastName,
                         newWhite,
                         newBlue,
                         newGreen,
-                        newOrange,
-                        student.StudentID
+                        newOrange
                     );
-                    updated++;
-                    console.log(`♻️ [IMPORT] Updated existing student: ${student.StudentID}`);
+                    added++;
+                    console.log("🆕 Inserted new student:", student.StudentID);
                 } else {
-                    skipped++;
-                    console.log(`⏭️ [IMPORT] Skipped student (no change): ${student.StudentID}`);
+                    if (
+                        existing.WhiteTag !== newWhite ||
+                        existing.BlueTag !== newBlue ||
+                        existing.GreenTag !== newGreen ||
+                        existing.OrangeTag !== newOrange
+                    ) {
+                        db.prepare(`
+                            UPDATE users
+                            SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?
+                            WHERE StudentID = ?
+                        `).run(newWhite, newBlue, newGreen, newOrange, student.StudentID);
+                        updated++;
+                        console.log("♻️ Updated student:", student.StudentID);
+                    } else {
+                        skipped++;
+                        console.log("⏭️ Skipped student (no changes):", student.StudentID);
+                    }
                 }
+            } catch (rowErr) {
+                console.error("❌ Error processing individual student row:", student, rowErr);
+                skipped++;
             }
         }
-        console.log(`📊 [IMPORT] Summary — Added: ${added}, Skipped: ${skipped}, Updated: ${updated}`);
+
+        console.log("📊 Import Summary — Added:", added, "Updated:", updated, "Skipped:", skipped);
+        return new Response(JSON.stringify({ message: 'Import complete', added, updated, skipped }), { status: 200 });
+
+    } catch (e: any) {
+        console.error("❌ [IMPORT] Unexpected failure during CSV processing");
+        console.error("Error message:", e?.message);
+        console.error("Stack trace:", e?.stack);
         return new Response(JSON.stringify({
-            message: 'CSV imported successfully',
-            added,
-            skipped,
-            updated,
-        }), {status: 200});
-    } catch (error) {
-        console.error("❌ [IMPORT] Exception during import:", error);
-        return new Response(JSON.stringify({message: 'Server error during CSV import'}), {status: 500});
+            message: 'Server error during CSV import',
+            error: e?.message || 'Unknown error'
+        }), { status: 500 });
     }
 }
 
