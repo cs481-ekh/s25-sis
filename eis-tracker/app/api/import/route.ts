@@ -29,8 +29,12 @@ const extractDataFromBuffer = async (buffer: ArrayBuffer): Promise<StudentData[]
         const stream = Readable.from(Buffer.from(buffer)).pipe(csv());
 
         stream
+            .on('headers', (headers) => {
+                console.log("📝 CSV Headers:", headers);
+            })
             .on('data', (row: { [key: string]: string }) => {
                 console.log("🔎 Raw CSV row:", row);
+
                 if (!firstRowProcessed) {
                     firstRowProcessed = true;
                     return;
@@ -98,6 +102,8 @@ export async function POST(req: Request) {
     try {
         buffer = await file.arrayBuffer();
         console.log("📦 Converted file to ArrayBuffer, size:", buffer.byteLength);
+        const textPreview = Buffer.from(buffer).toString('utf-8').slice(0, 500);
+        console.log("📄 File content preview (first 500 chars):", textPreview);
     } catch (e) {
         console.error("❌ Failed to convert uploaded file to buffer");
         console.error("Error:", e);
@@ -108,8 +114,16 @@ export async function POST(req: Request) {
         const data = await extractDataFromBuffer(buffer);
         console.log("✅ Extracted", data.length, "students from CSV");
 
-        const db = new Database('database/database.db');
-        console.log("📂 Connected to database");
+        let db;
+        try {
+            db = new Database('database/database.db');
+            console.log("📂 Connected to database");
+        } catch (dbErr: any) {
+            console.error("❌ Failed to connect to database");
+            console.error("Error message:", dbErr.message);
+            console.error("Stack trace:", dbErr.stack);
+            return new Response(JSON.stringify({ message: 'Database connection error' }), { status: 500 });
+        }
 
         let added = 0, skipped = 0, updated = 0;
 
@@ -174,7 +188,7 @@ export async function POST(req: Request) {
             }
         }
 
-        console.log("📊 Import Summary — Added:", added, "Updated:", updated, "Skipped:", skipped);
+        console.log(`📊 Import Summary — Total rows: ${data.length}, Added: ${added}, Updated: ${updated}, Skipped: ${skipped}`);
         return new Response(JSON.stringify({ message: 'Import complete', added, updated, skipped }), { status: 200 });
 
     } catch (e: any) {
