@@ -37,6 +37,8 @@ export default function Page() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [photo, setPhoto] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false); // 🔒 Prevent rapid re-submits
+
 
     const [activeTab, setActiveTab] = useState<'dashboard' | 'search'>('dashboard'); // State for active tab
 
@@ -431,6 +433,8 @@ export default function Page() {
             return;
         }
 
+        setIsUploading(true); // 🔒 Disable upload button
+
         const formData = new FormData();
         formData.append('file', file);
 
@@ -443,9 +447,8 @@ export default function Page() {
             if (res.ok) {
                 const data = await res.json();
                 setUploadMessage(
-                  `CSV imported successfully!\nAdded: ${data.added} | Skipped: ${data.skipped} | Updated: ${data.updated}`
+                    `CSV imported successfully!\nAdded: ${data.added} | Skipped: ${data.skipped} | Updated: ${data.updated}`
                 );
-                //console.log(data); // Log the extracted data
             } else {
                 setUploadMessage("Error importing file.");
                 console.error("Error importing file.");
@@ -453,6 +456,8 @@ export default function Page() {
         } catch (error) {
             setUploadMessage("Error uploading file.");
             console.error("Error uploading file:", error);
+        } finally {
+            setIsUploading(false); // 🔓 Re-enable after completion
         }
     };
 
@@ -708,13 +713,14 @@ export default function Page() {
                             onChange={handleFileChange}
                             className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <button
-                        className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition"
-                        onClick={handleFileUpload}
-                    >
-                        Upload CSV
-                    </button>
-                    {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
+                        <button
+                            className="mt-3 px-6 py-3 bg-blue-500 text-white text-lg rounded-md hover:bg-blue-600 transition disabled:opacity-50"
+                            onClick={handleFileUpload}
+                            disabled={isUploading}
+                        >
+                            {isUploading ? "Uploading..." : "Upload CSV"}
+                        </button>
+                        {uploadMessage && <p className="mt-2 text-sm">{uploadMessage}</p>}
                 </div>
                 )}
                 {/* Photo Upload Section */}
