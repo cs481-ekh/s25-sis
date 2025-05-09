@@ -563,8 +563,7 @@ export default function Page() {
                 await fetchStudents();
             })();
         }
-    }, [viewStudents]);
-
+    }, [viewStudents, fetchStudents]);
 
     return (
         <div className="flex min-h-screen flex-col">

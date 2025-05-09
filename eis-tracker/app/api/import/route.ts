@@ -113,7 +113,6 @@ export async function POST(req: Request) {
     SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?
     WHERE StudentID = ?
 `);
-        const selectStmt = db.prepare(`SELECT * FROM users WHERE StudentID = ?`);
 
         const processBatch = db.transaction((batch: StudentData[]) => {
             for (const student of batch) {
@@ -186,10 +185,13 @@ export async function POST(req: Request) {
 
         return new NextResponse(JSON.stringify({ message: 'Import complete', added, updated, skipped }), { status: 200 });
 
-    } catch (err: any) {
-        console.error("❌ [IMPORT] Error during CSV handling");
-        console.error(err);
-        return new NextResponse(JSON.stringify({ message: 'Failed to process CSV', error: err.message }), { status: 500 });
+    } catch (err: unknown) {
+        if (err instanceof Error) {
+            console.error("❌ [IMPORT] Error during CSV handling");
+            console.error(err);
+            return new NextResponse(JSON.stringify({ message: 'Failed to process CSV', error: err.message }), { status: 500 });
+        }
+        return new NextResponse(JSON.stringify({ message: 'Unknown error occurred' }), { status: 500 });
     }
 }
 
