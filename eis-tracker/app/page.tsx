@@ -202,6 +202,19 @@ export default function Home() {
         // Initialize database on mount
         createTable();
         fetchData();
+
+        const handleKeyPress = (e: KeyboardEvent) => {
+            const inputElement = document.querySelector<HTMLInputElement>('input[type="text"]');
+            if (inputElement && document.activeElement !== inputElement) {
+                inputElement.focus();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyPress);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyPress);
+        };
     }, []);
 
     // Updates every time 'list' changes
@@ -408,7 +421,13 @@ export default function Home() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 items-center">
-                        <div className="flex flex-col">
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault(); // Prevent default form submission
+                                loginButton(); // Call the login function
+                            }}
+                            className="flex flex-col"
+                        >
                             <input
                                 type="text"
                                 placeholder="Enter Student ID"
@@ -429,7 +448,7 @@ export default function Home() {
                             {idError && (
                                 <span className="text-red-500 text-sm mt-1">{idError}</span>
                             )}
-                        </div>
+                        </form>
                         <button
                             className={`px-6 py-3 text-white text-lg rounded-md transition ${
                                 validateStudentID(StudentID)

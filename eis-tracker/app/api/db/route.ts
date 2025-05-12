@@ -71,6 +71,7 @@ export async function GET(request: Request) {
                   First_Name,
                   Last_Name,
                   Logged_In,
+                  Major,
                   (WhiteTag * 1 +
                    BlueTag * 2 +
                    GreenTag * 4 +
