@@ -203,7 +203,7 @@ export default function Home() {
         createTable();
         fetchData();
 
-        const handleKeyPress = (_e: KeyboardEvent) => {
+        const handleKeyPress = () => {
             const inputElement = document.querySelector<HTMLInputElement>('input[type="text"]');
             if (inputElement && document.activeElement !== inputElement) {
                 inputElement.focus();
