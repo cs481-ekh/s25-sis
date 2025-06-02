@@ -15,6 +15,8 @@ export default function Home() {
     const [supervising, setSupervising] = useState(false);
     const [showMajorPrompt, setShowMajorPrompt] = useState(false);
 
+    const [supervisorPromptHandled, setSupervisorPromptHandled] = useState(false);
+
     // List of majors
     const majors = [
         "Computer Science",
@@ -99,13 +101,13 @@ export default function Home() {
                     (student) => Number(student.StudentID) === Number(StudentID)
                 );
 
-            if (isSupervisor && !showSupervisorPrompt && !isStudentLoggedIn) {
+            if (isSupervisor && !showSupervisorPrompt && !isStudentLoggedIn && !supervisorPromptHandled) {
                 setShowSupervisorPrompt(true); // Show checkbox before proceeding
                 return;
             }
 
             const studentMajor = data.user.Major || null;
-            if (studentMajor === null && !showMajorPrompt) {
+            if (studentMajor && !showMajorPrompt) {
                 setShowMajorPrompt(true); // Show major selection prompt
                 return;
             }
@@ -322,6 +324,7 @@ export default function Home() {
                             <button
                                 onClick={async () => {
                                     setShowSupervisorPrompt(false);
+                                    setSupervisorPromptHandled(true);
                                     await loginButton(); // Retry login now that supervisor confirmed
                                 }}
                                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
