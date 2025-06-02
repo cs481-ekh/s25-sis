@@ -362,7 +362,7 @@ export async function POST(request: Request) {
     const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
     return new Response(JSON.stringify({ log }), { status: 200 });
   } else if (data.mode === 'registerPwd') {
-    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').all(Number(data.StudentID));
+    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(Number(data.StudentID));
     if (!user) {
       return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
     }
