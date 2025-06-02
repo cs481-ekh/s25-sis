@@ -278,7 +278,8 @@ export default function Page() {
                 console.log('Added Password', tags);
                 setShowModal(false);
             } else {
-                console.error('Failed to add password');
+                const data = await passRes.json();
+                console.error('Failed to add password: ' + (data.message || 'Unknown error'));
             }
         }
     }
