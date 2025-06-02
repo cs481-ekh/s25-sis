@@ -73,6 +73,7 @@ export async function GET(request: Request) {
                   Last_Name,
                   Logged_In,
                   Tags,
+                  Major,
                   ROUND((
                             SELECT SUM(
                                            CASE
@@ -137,6 +138,7 @@ export async function GET(request: Request) {
       Last_Name,
       Logged_In,
       Tags,
+      Major,
       ROUND((
               SELECT SUM(
                          CASE
@@ -172,6 +174,7 @@ export async function GET(request: Request) {
     Last_Name,
     Logged_In,
     Tags,
+    Major,
     ROUND((SELECT SUM(
                      CASE
                        WHEN Time_Out IS NOT NULL THEN (Time_Out - Time_In)
@@ -239,6 +242,7 @@ export async function GET(request: Request) {
         Last_Name,
         Logged_In,
         Tags,
+        Major,
         (
           SELECT SUM(
                      CASE
