@@ -21,6 +21,7 @@ export async function POST(req: Request) {
         database: "database.db",
         mode: "password",
         ID: id,
+        password: pass
     });
     const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
         method: "GET",
@@ -29,17 +30,14 @@ export async function POST(req: Request) {
         },
     });
     if (!res.ok){
-        return NextResponse.json({ message: "User password not found" }, { status: 401 });
+        return res;
     }
 
-    const json = await res.json();
-// json.password === { Password: 'admin123' }
-    const password = json.password?.Password;
 
 
 
     // Simple authentication check (Replace with real logic)
-    if (password === pass) {
+    
         const headers = new Headers();
         headers.append(
             "Set-Cookie",
@@ -51,13 +49,13 @@ export async function POST(req: Request) {
             })
         );
 
-        const params = new URLSearchParams({
+        const newParams = new URLSearchParams({
             database: "database.db",
             mode: "user",
             StudentID: id,
         });
 
-        const tagRes = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+        const tagRes = await fetch(`${baseApiUrl}db?${newParams.toString()}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -93,7 +91,7 @@ export async function POST(req: Request) {
         );
 
         return new NextResponse(JSON.stringify({ message: "Logged in" }), { status: 200, headers });
-    }
+
 
     return new NextResponse(JSON.stringify({ message: "Invalid credentials" }), { status: 401 });
 }
