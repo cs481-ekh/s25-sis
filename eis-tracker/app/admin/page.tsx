@@ -210,18 +210,16 @@ export default function Page() {
     }, [router]);
 
     const register = async () => {
-        if (formMode === 'register') {
-            if (admin || supervisor) {
-                if (!password || !confirmPassword) {
-                    alert("Both password fields are required for Admin or Supervisor!");
-                    return;
-                }
-                if (password !== confirmPassword) {
-                    alert("Passwords do not match!");
-                    return;
-                }
+        if (admin || supervisor) {
+            if (!password || !confirmPassword) {
+                alert("Both password fields are required for Admin or Supervisor!");
+                return;
+            } else if (password !== confirmPassword) {
+                alert("Passwords do not match!");
+                return;
             }
-
+        }
+        if (formMode === 'register') {
             const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
