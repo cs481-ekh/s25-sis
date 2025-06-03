@@ -5,6 +5,7 @@ import React from "react";
 export default function Page() {
     const [id, setId] = React.useState<string>("");
     const [pass, setPass] = React.useState<string>("");
+    const [errorMsg, setErrorMsg] = React.useState<string>("");
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
 
 
@@ -21,29 +22,42 @@ export default function Page() {
         });
 
         if (response.ok) {
-            window.location.href = link; // Redirect after login
+            setErrorMsg(""); // Clear any previous error
+            window.location.href = link;
         } else {
-            console.error("Invalid credentials");
+            setErrorMsg("Invalid credentials");
+            setPass(""); // clear the password field
         }
     };
 
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 bg-gray-100">
+            {errorMsg && (
+                <div className="mb-4 text-red-600 bg-red-100 border border-red-400 px-4 py-2 rounded">
+                    {errorMsg}
+                </div>
+            )}
             <h1 className="text-2xl font-bold mb-4">Enter Admin ID and Password to Login</h1>
             <div className="flex flex-col gap-4 items-center">
                 <input
                     type="text"
                     placeholder="Enter Admin ID"
                     value={id}
-                    onChange={(e) => setId(e.target.value)}
+                    onChange={(e) => {
+                        setId(e.target.value);
+                        setErrorMsg(""); // clear the red error when typing again
+                    }}
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                     type="password"
                     placeholder="Enter Admin Password"
                     value={pass}
-                    onChange={(e) => setPass(e.target.value)}
+                    onChange={(e) => {
+                        setPass(e.target.value);
+                        setErrorMsg(""); // clear the red error when typing again
+                    }}
                     className="p-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
 
