@@ -7,6 +7,7 @@
  * however, this should be used cautiously as it can lead to SQL injection attacks.
  */
 import Database from 'better-sqlite3';
+import bcrypt from 'bcrypt';
 
 /**
  * @description
@@ -71,12 +72,8 @@ export async function GET(request: Request) {
                   First_Name,
                   Last_Name,
                   Logged_In,
+                  Tags,
                   Major,
-                  (WhiteTag * 1 +
-                   BlueTag * 2 +
-                   GreenTag * 4 +
-                   OrangeTag * 8 +
-                   PurpleTag * 16) AS Tags,
                   ROUND((
                             SELECT SUM(
                                            CASE
@@ -117,10 +114,21 @@ export async function GET(request: Request) {
         return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 }); //change to 200 if not returning 400 is desired
       return new Response(JSON.stringify({ user }), { status: 200 });
     } else if (mode === 'password') {
-      const ID = url.searchParams.get('ID');
-      const password = db.prepare('SELECT Password FROM passwords WHERE ID = (?)').get(ID);
+      const ID = url.searchParams.get('ID') || '';
+      const inputPassword = url.searchParams.get('password') || '';
 
-      return new Response(JSON.stringify({ password }), { status: 200 });
+
+      const password = db.prepare('SELECT Password FROM passwords WHERE ID = (?)').get(ID) as { Password?: string } | undefined;
+      const storedHash = password?.Password ?? '$2b$12$abcdefghijklmnopqrstuvuvuvuvuvuvuvuvuvuvuvuvuvuvuvuv'; // Dummy hash
+
+      const passwordMatch = await verifyPassword(inputPassword, storedHash);
+
+      if (passwordMatch) {
+        return new Response(JSON.stringify({ message: 'Login successful' }), { status: 200 });
+      }
+      else {
+        return new Response(JSON.stringify({ message: 'Invalid credentials' }), { status: 401 });
+      }
     } else if (mode === 'all_logged_in') {
       const now = Date.now();
       const users = db.prepare(`
@@ -129,11 +137,8 @@ export async function GET(request: Request) {
       First_Name,
       Last_Name,
       Logged_In,
-      (WhiteTag * 1 +
-       BlueTag * 2 +
-       GreenTag * 4 +
-       OrangeTag * 8 +
-       PurpleTag * 16) AS Tags,
+      Tags,
+      Major,
       ROUND((
               SELECT SUM(
                          CASE
@@ -168,11 +173,8 @@ export async function GET(request: Request) {
     First_Name,
     Last_Name,
     Logged_In,
-    (WhiteTag * 1 +
-     BlueTag * 2 +
-     GreenTag * 4 +
-     OrangeTag * 8 +
-     PurpleTag * 16) AS Tags,
+    Tags,
+    Major,
     ROUND((SELECT SUM(
                      CASE
                        WHEN Time_Out IS NOT NULL THEN (Time_Out - Time_In)
@@ -226,8 +228,9 @@ export async function GET(request: Request) {
 
     const existingPwd = db.prepare('SELECT * FROM passwords WHERE ID = ?').get(999999999);
     if (!existingPwd) {
-      db.prepare('INSERT INTO passwords (ID, Password) VALUES (?, ?)').run(999999999, 'admin123');
-      db.prepare('INSERT INTO users (StudentID, Tags) VALUES (?, ?)').run(999999999, 0b10000);
+      const hashedPassword = await hashPassword('admin123');
+      db.prepare('INSERT INTO passwords (ID, Password) VALUES (?, ?)').run(999999999, hashedPassword);
+      db.prepare('INSERT INTO users (StudentID, Tags, First_Name, Last_Name) VALUES (?, ?, ?, ?)').run(999999999, 0b10000, 'Admin', 'User');
     }
 
     // Query the users table
@@ -238,11 +241,8 @@ export async function GET(request: Request) {
         First_Name,
         Last_Name,
         Logged_In,
-        (WhiteTag * 1 +
-         BlueTag * 2 +
-         GreenTag * 4 +
-         OrangeTag * 8 +
-         PurpleTag * 16) AS Tags,
+        Tags,
+        Major,
         (
           SELECT SUM(
                      CASE
@@ -371,10 +371,11 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ message: 'Missing or empty password' }), { status: 400 });
     }
 
+    const hashedPassword = await hashPassword(data.Password);
     // Insert or replace password (assumes 1:1 mapping with StudentID)
     db.prepare('INSERT OR REPLACE INTO passwords (ID, Password) VALUES (?, ?)').run(
         Number(data.StudentID),
-        data.Password // You may want to hash this in a real app
+        hashedPassword
     );
 
     return new Response(JSON.stringify({ message: 'Password registered' }), { status: 200 });
@@ -497,4 +498,14 @@ export async function DELETE(request: Request) {
   }
 
   return new Response(JSON.stringify({ message: 'User deleted' }), { status: 200 });
+}
+
+const saltRounds = 12;
+
+async function hashPassword(password: string): Promise<string> {
+  return await bcrypt.hash(password, saltRounds);
+}
+
+async function verifyPassword(inputPassword: string, storedHash: string): Promise<boolean> {
+  return await bcrypt.compare(inputPassword, storedHash);
 }

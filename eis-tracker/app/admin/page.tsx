@@ -161,6 +161,7 @@ export default function Page() {
                                         key={student.StudentID}
                                         className="flex flex-col items-center border p-2 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105"
                                         onClick={() => {
+                                            setStudentID(student.StudentID);
                                             openUpdate(student.StudentID);
                                         }}
                                     >
@@ -209,18 +210,16 @@ export default function Page() {
     }, [router]);
 
     const register = async () => {
-        if (formMode === 'register') {
-            if (admin || supervisor) {
-                if (!password || !confirmPassword) {
-                    alert("Both password fields are required for Admin or Supervisor!");
-                    return;
-                }
-                if (password !== confirmPassword) {
-                    alert("Passwords do not match!");
-                    return;
-                }
+        if (admin || supervisor) {
+            if (!password || !confirmPassword) {
+                alert("Both password fields are required for Admin or Supervisor!");
+                return;
+            } else if (password !== confirmPassword) {
+                alert("Passwords do not match!");
+                return;
             }
-
+        }
+        if (formMode === 'register') {
             const res = await fetch(`${baseApiUrl}db`, {
                 method: 'POST',
                 headers: {
@@ -278,9 +277,13 @@ export default function Page() {
                 console.log('Added Password', tags);
                 setShowModal(false);
             } else {
-                console.error('Failed to add password');
+                const data = await passRes.json();
+                console.error('Failed to add password: ' + (data.message || 'Unknown error'));
             }
         }
+        
+        clearForm(); // Clear the form fields after registration or update
+        setStudentID(""); // Clear the StudentID field
     }
 
     const fetchStudents = async () => {
@@ -638,7 +641,7 @@ export default function Page() {
                             <label><input type="checkbox" checked={supervisor} onChange={() => setSupervisor(!supervisor)} /> Supervisor</label>
                         </div>
                         <div className="flex justify-between">
-                            <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                            <button onClick={() => {setShowModal(false);clearForm();setStudentID("");}} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
                             <button onClick={register} className="px-4 py-2 bg-blue-500 text-white rounded">
                                 {formMode === 'register' ? "Register" : "Update"}
                             </button>

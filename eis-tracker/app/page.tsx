@@ -99,14 +99,14 @@ export default function Home() {
                     (student) => Number(student.StudentID) === Number(StudentID)
                 );
 
-            if (isSupervisor && !showSupervisorPrompt && !isStudentLoggedIn) {
-                setShowSupervisorPrompt(true); // Show checkbox before proceeding
-                return;
-            }
-
             const studentMajor = data.user.Major || null;
             if (studentMajor === null && !showMajorPrompt) {
                 setShowMajorPrompt(true); // Show major selection prompt
+                return;
+            }
+
+            if (isSupervisor && !showSupervisorPrompt && !isStudentLoggedIn) {
+                setShowSupervisorPrompt(true); // Show checkbox before proceeding
                 return;
             }
         } else {
