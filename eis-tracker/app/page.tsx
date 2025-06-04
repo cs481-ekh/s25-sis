@@ -248,7 +248,7 @@ export default function Home() {
         const handleKeyPress = () => {
             if (!newUser && !showMajorPrompt && !showSupervisorPrompt) {
                 const inputElement = document.querySelector<HTMLInputElement>('input[id="idInput"]');
-                if( inputElement) {
+                if (inputElement) {
                     inputElement.focus();
                 }
             } else if (newUser) {
@@ -260,7 +260,7 @@ export default function Home() {
             } else if (showMajorPrompt && selectedMajor === "Other") {
                 // Focus on the other major input if "Other" is selected
                 const otherMajorInput = document.querySelector<HTMLInputElement>('input[id="otherMajorInput"]');
-                if(otherMajorInput && document.activeElement !== otherMajorInput) {
+                if (otherMajorInput && document.activeElement !== otherMajorInput) {
                     otherMajorInput.focus();
                 }
             }
@@ -533,11 +533,11 @@ export default function Home() {
                                 onClick={() => {
                                     setNewUserConfirmed(false);
                                     setStudentID(""); // Reset StudentID
-                                    }}
+                                }}
                                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                >
+                            >
                                 Close
-                                </button>
+                            </button>
                         </div>
                     </div>
                 </div>
