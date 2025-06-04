@@ -59,14 +59,14 @@ export async function GET(request: Request) {
 
     const mode = url.searchParams.get('mode');
 
-      if (mode === 'user') {
-          const StudentID = url.searchParams.get('StudentID');
-          if (!StudentID) {
-              return new Response(JSON.stringify({ message: 'StudentID is required' }), { status: 400 });
-          }
+    if (mode === 'user') {
+      const StudentID = url.searchParams.get('StudentID');
+      if (!StudentID) {
+        return new Response(JSON.stringify({ message: 'StudentID is required' }), { status: 400 });
+      }
 
-          const now = Date.now();
-          const user = db.prepare(`
+      const now = Date.now();
+      const user = db.prepare(`
               SELECT
                   StudentID,
                   First_Name,
@@ -88,15 +88,15 @@ export async function GET(request: Request) {
               WHERE StudentID = ?
           `).get(now, StudentID);
 
-          if (!user) {
-              return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
-          }
+      if (!user) {
+        return new Response(JSON.stringify({ message: 'User not found' }), { status: 404 });
+      }
 
-          return new Response(JSON.stringify({ user }), { status: 200 });
-      } else if (mode === 'log') {
+      return new Response(JSON.stringify({ user }), { status: 200 });
+    } else if (mode === 'log') {
       const LogID = url.searchParams.get('LogID');
       const log = db.prepare('SELECT * FROM logs WHERE LogID = (?)').get(LogID);
-      if(log === undefined) 
+      if (log === undefined)
         return new Response(JSON.stringify({ message: 'Log not found' }), { status: 400 });
       return new Response(JSON.stringify({ log }), { status: 200 });
     } else if (mode === 'MANUAL') {
@@ -107,10 +107,10 @@ export async function GET(request: Request) {
       // }
       // const result = db.prepare(sql).all();
       // return new Response(JSON.stringify({ result }), { status: 200 });
-    } else if (mode === 'IDCARD'){
+    } else if (mode === 'IDCARD') {
       const CardID = url.searchParams.get('CardID');
       const user = db.prepare('SELECT * FROM users WHERE CardID = (?)').get(CardID);
-      if(user === undefined) 
+      if (user === undefined)
         return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 }); //change to 200 if not returning 400 is desired
       return new Response(JSON.stringify({ user }), { status: 200 });
     } else if (mode === 'password') {
@@ -159,11 +159,11 @@ export async function GET(request: Request) {
       const ID = url.searchParams.get('StudentID');
       const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(ID);
       if (user === undefined)
-        return new Response(JSON.stringify({message: 'User not found'}), {status: 400});
+        return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
       const log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out IS NULL').get(ID);
       if (log === undefined)
-        return new Response(JSON.stringify({message: 'User not logged in'}), {status: 400});
-      return new Response(JSON.stringify({log}), {status: 200});
+        return new Response(JSON.stringify({ message: 'User not logged in' }), { status: 400 });
+      return new Response(JSON.stringify({ log }), { status: 200 });
     } else if (mode === 'search') {
       const search = url.searchParams.get('search');
       const now = Date.now();
@@ -190,7 +190,7 @@ export async function GET(request: Request) {
 
       return new Response(JSON.stringify({ users }), { status: 200 });
     }
-    } else {
+  } else {
     console.log('Creating tables');
     const db = new Database('database/database.db');
 
@@ -223,11 +223,11 @@ export async function GET(request: Request) {
       ' User INTEGER REFERENCES users(StudentID) ON DELETE RESTRICT ON UPDATE CASCADE)'
     ).run();
     db.prepare('CREATE TABLE if NOT EXISTS passwords (ID INTEGER PRIMARY KEY UNIQUE,' +
-        ' Password INTEGER NOT NULL DEFAULT 0)'
+      ' Password INTEGER NOT NULL DEFAULT 0)'
     ).run();
 
-    const existingPwd = db.prepare('SELECT * FROM passwords WHERE ID = ?').get(999999999);
-    if (!existingPwd) {
+    const pwdCount = db.prepare('SELECT COUNT(*) as count FROM passwords').get() as { count: number };
+    if (pwdCount.count === 0) {
       const hashedPassword = await hashPassword('admin123');
       db.prepare('INSERT INTO passwords (ID, Password) VALUES (?, ?)').run(999999999, hashedPassword);
       db.prepare('INSERT INTO users (StudentID, Tags, First_Name, Last_Name) VALUES (?, ?, ?, ?)').run(999999999, 0b10000, 'Admin', 'User');
@@ -314,7 +314,7 @@ export async function POST(request: Request) {
   if (data.mode === 'register') {
     {
       const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
-      if(user !== undefined) 
+      if (user !== undefined)
         return new Response(JSON.stringify({ message: 'StudentID in use' }), { status: 400 });
     }
     if (data.StudentID === undefined || data.First_Name === undefined || data.Last_Name === undefined)
@@ -335,31 +335,32 @@ export async function POST(request: Request) {
 
   } else if (data.mode === 'login') {
     {
-    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
-    if(user === undefined) 
-      return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
+      const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+      if (user === undefined)
+        return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
     }
     db.prepare('INSERT INTO logs (Time_In, User, Supervising) VALUES (?,?,?)').run(Date.now(), data.StudentID, Number(data.Supervising));
     db.prepare('UPDATE users SET Logged_In = TRUE WHERE StudentID = (?)').run(data.StudentID);
     db.prepare('UPDATE users SET Active = TRUE WHERE StudentID = (?)').run(data.StudentID);
 
 
-    const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
+    const log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out IS NULL').get(data.StudentID);
     return new Response(JSON.stringify({ log }), { status: 200 });
 
   } else if (data.mode === 'logout') {
     {
-    const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
-    if(user === undefined) 
-      return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
-    const log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out IS NULL').get(data.StudentID);
-    if(log === undefined)
-      return new Response(JSON.stringify({ message: 'User not logged in' }), { status: 400 });
+      const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
+      if (user === undefined)
+        return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
+      const log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out IS NULL').get(data.StudentID);
+      if (log === undefined)
+        return new Response(JSON.stringify({ message: 'User not logged in' }), { status: 400 });
     }
-    db.prepare('UPDATE logs SET Time_Out = ? WHERE User = ? AND Time_Out IS NULL').run(Date.now(), data.StudentID);
+    const now = Date.now();
+    db.prepare('UPDATE logs SET Time_Out = ? WHERE User = ? AND Time_Out IS NULL').run(now, data.StudentID);
     db.prepare('UPDATE users SET Logged_In = FALSE WHERE StudentID = (?)').run(data.StudentID);
 
-    const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
+    const log = db.prepare('SELECT * FROM logs WHERE User = (?) AND Time_Out = ?').get(data.StudentID, now);
     return new Response(JSON.stringify({ log }), { status: 200 });
   } else if (data.mode === 'registerPwd') {
     const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(Number(data.StudentID));
@@ -374,8 +375,8 @@ export async function POST(request: Request) {
     const hashedPassword = await hashPassword(data.Password);
     // Insert or replace password (assumes 1:1 mapping with StudentID)
     db.prepare('INSERT OR REPLACE INTO passwords (ID, Password) VALUES (?, ?)').run(
-        Number(data.StudentID),
-        hashedPassword
+      Number(data.StudentID),
+      hashedPassword
     );
 
     return new Response(JSON.stringify({ message: 'Password registered' }), { status: 200 });
@@ -413,7 +414,7 @@ export async function POST(request: Request) {
 
     const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
     return new Response(JSON.stringify({ user }), { status: 200 });
-  } else if(data.mode === 'set_major'){
+  } else if (data.mode === 'set_major') {
     if (data.StudentID === undefined || data.Major === undefined) {
       return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
     }
@@ -421,12 +422,12 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ message: 'Empty required fields' }), { status: 400 });
     }
     db.prepare('UPDATE users SET Major = ? WHERE StudentID = ?').run(data.Major, data.StudentID);
-    if(data.Major === 'Other'){
+    if (data.Major === 'Other') {
       db.prepare('UPDATE users SET Other = ? WHERE StudentID = ?').run(data.Other, data.StudentID);
     }
     const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
     return new Response(JSON.stringify({ user }), { status: 200 });
-  } else if(data.mode === 'set_IDCARD'){
+  } else if (data.mode === 'set_IDCARD') {
     if (data.StudentID === undefined || data.CardID === undefined) {
       return new Response(JSON.stringify({ message: 'Missing required fields' }), { status: 400 });
     }
@@ -473,19 +474,20 @@ export async function DELETE(request: Request) {
   const data = await request.json();
 
   const db = new Database('database/' + (data.database || 'database.db'));
-  if(data.mode === 'user') {
+  if (data.mode === 'user') {
     {
-      if(data.StudentID === undefined || data.StudentID === '')
+      if (data.StudentID === undefined || data.StudentID === '')
         return new Response(JSON.stringify({ message: 'No StudentID provided' }), { status: 400 });
       const user = db.prepare('SELECT * FROM users WHERE StudentID = (?)').get(data.StudentID);
-      if(user === undefined) 
+      if (user === undefined)
         return new Response(JSON.stringify({ message: 'User not found' }), { status: 400 });
       const log = db.prepare('SELECT * FROM logs WHERE User = (?)').all(data.StudentID);
-      if(log.length > 0) 
+      if (log.length > 0)
         return new Response(JSON.stringify({ message: 'User has logs' }), { status: 400 });
     }
-  db.prepare('DELETE FROM users WHERE StudentID = (?)').run(data.StudentID);
-  } else if(data.mode === 'MANUAL') {
+    db.prepare('DELETE FROM users WHERE StudentID = (?)').run(data.StudentID);
+    return new Response(JSON.stringify({ message: 'User deleted' }), { status: 200 });
+  } else if (data.mode === 'MANUAL') {
     return new Response(JSON.stringify({ message: 'DISABLED MODE' }), { status: 400 });
     // const sql = data.sql;
     // if (sql === null || sql === undefined || sql === '') {
@@ -496,8 +498,6 @@ export async function DELETE(request: Request) {
   } else {
     return new Response(JSON.stringify({ message: 'Invalid mode' }), { status: 400 });
   }
-
-  return new Response(JSON.stringify({ message: 'User deleted' }), { status: 200 });
 }
 
 const saltRounds = 12;

@@ -2,11 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
     const [StudentID, setStudentID] = useState("");
-    const [list, setlist] = useState<string[]>([]);
     const [notification, setNotification] = useState<string>(""); // New state for temporary notification
 
     //const [First_Name, setName] = useState("");
@@ -56,14 +55,22 @@ export default function Home() {
 
     // Function for fetching students from db
     async function fetchStudents() {
-        const res = await fetch(`${baseApiUrl}db`);
-        //console.log(loggedInStudents);
+        const params = new URLSearchParams({
+            database: "database.db",
+            mode: "all_logged_in",
+        });
 
+        const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
         if (res.ok) {
             const data = await res.json();
             setLoggedInStudents(data.users || []);
         } else {
-            console.error("Failed to fetch logged-in students");
+            console.error('Failed to fetch logged-in students');
         }
     }
 
@@ -87,103 +94,90 @@ export default function Home() {
             },
         });
 
+        //student exists
         if (tagRes.ok) {
-            // Check if supervisor bit is set
             const data = await tagRes.json();
-            const tags = parseInt(data.user.Tags, 10) || 0;
-            const isSupervisor =
-                (tags & 0b100000) !== 0;
-            const isStudentLoggedIn = loggedInStudents
-                .filter((student) => student.Logged_In)
-                .some(
-                    (student) => Number(student.StudentID) === Number(StudentID)
-                );
+            const user = data.user;
 
-            const studentMajor = data.user.Major || null;
-            if (studentMajor === null && !showMajorPrompt) {
-                setShowMajorPrompt(true); // Show major selection prompt
-                return;
-            }
+            // Check if the student is already logged in
+            if (!user.Logged_In) {
+                //User is not logged in, proceed with login
 
-            if (isSupervisor && !showSupervisorPrompt && !isStudentLoggedIn) {
-                setShowSupervisorPrompt(true); // Show checkbox before proceeding
-                return;
-            }
+                // Check if supervisor bit is set
+                const tags = parseInt(user.Tags, 10) || 0;
+                const isSupervisor = (tags & 0b100000) !== 0;
+
+                const studentMajor = user.Major || null;
+                if (studentMajor === null && !showMajorPrompt) {
+                    setShowMajorPrompt(true); // Show major selection prompt
+                    return;
+                }
+
+                if (isSupervisor && !showSupervisorPrompt) {
+                    setShowSupervisorPrompt(true); // Show checkbox before proceeding
+                    return;
+                }
+
+                let supervisor = 0;
+                if (supervising) {
+                    supervisor = 1;
+                }
+
+                const res = await fetch(`${baseApiUrl}db`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ StudentID, mode: "login", Supervising: supervisor }),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log("New log:", data.log);
+
+                    // Notify of successful login
+                    const d = new Date().toLocaleString("en-US");
+                    setNotification(`${StudentID} logged in at ${d}`);
+                    setTimeout(() => setNotification(""), 6000);                    
+                } else {
+                    console.error("Failed to insert log");
+                }
+                setSupervising(false);
+            } else {
+                // User is already logged in, proceed with logout
+
+                const res = await fetch(`${baseApiUrl}db`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ StudentID, mode: "logout" }),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log("Completed log:", data.log);
+                    
+                    //notify of successful logout
+                    const d = new Date().toLocaleString("en-US");
+                    setNotification(`${StudentID} logged out at ${d}`);
+                    setTimeout(() => setNotification(""), 6000);
+                } else {
+                    console.error("Failed to finish log");
+                }
+            }             
         } else {
+            //Student does not exist, create new user
             console.error("Failed to fetch logged-in students");
         }
 
-        const d = new Date().toLocaleString("en-US");
-        let newList;
-        // Using the list to check if a student is already logged in (your existing logic)
-        if (!list.includes(StudentID)) {
-            newList = list.concat(StudentID);
-
-            let supervisor = 0;
-            if (supervising){
-                supervisor=1;
-            }
-
-            const res = await fetch(`${baseApiUrl}db`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({StudentID, mode: "login", Supervising: supervisor }),
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                console.log("New log:", data.log);
-            } else {
-                console.error("Failed to insert log");
-            }
-            setSupervising(false);
-        } else {
-            newList = list.filter((item) => item !== StudentID);
-
-            const res = await fetch(`${baseApiUrl}db`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({StudentID, mode: "logout" }),
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                console.log("Completed log:", data.log);
-            } else {
-                console.error("Failed to finish log");
-            }
-
-        }
-
-        //change to name
-        setNotification(`${StudentID} logged out at ${d}`);
-        setTimeout(() => setNotification(""), 6000);
-
-        setlist(newList);
-
-        // Fetch students
+        // Reset student ID input and fetch updated students
         await fetchStudents();
-
-
         setStudentID("");
     };
 
     useEffect(() => {
         // Fetch database and table initialization
-        async function fetchData() {
-            const res = await fetch(`${baseApiUrl}db`);
-            if (res.ok) {
-                // const data = await res.json();
-                //console.log("User Database Content:", data.users);
-                //console.log("Logs Database Content:", data.logs);
-            } else {
-                console.error("Failed to fetch data");
-            }
-        }
         async function createTable() {
             try {
                 const res = await fetch(`${baseApiUrl}db`, { method: "GET" });
@@ -201,8 +195,8 @@ export default function Home() {
 
         // Initialize database on mount
         createTable();
-        fetchData();
 
+        // Handle key press to focus on input field
         const handleKeyPress = () => {
             const inputElement = document.querySelector<HTMLInputElement>('input[type="text"]');
             if (inputElement && document.activeElement !== inputElement) {
@@ -210,18 +204,17 @@ export default function Home() {
             }
         };
 
+        // Add interval to retrieve logged-in students every 10 seconds
+        const interval = setInterval(fetchStudents, 10000);
+
         document.addEventListener('keydown', handleKeyPress);
 
         return () => {
             document.removeEventListener('keydown', handleKeyPress);
+            clearInterval(interval); // Clear interval on unmount
         };
     }, []);
 
-    // Updates every time 'list' changes
-    useEffect(() => {
-        fetchStudents();
-    }, [list]);
-  
 
     useEffect(() => {
         const token = document.cookie.split('; ').find(row => row.startsWith('authToken='));
@@ -379,13 +372,13 @@ export default function Home() {
                             )}
                             <button
                                 onClick={async () => {
-                                    if (selectedMajor === "null" || (selectedMajor=== "Other" && otherMajor.trim() === "")) {
+                                    if (selectedMajor === "null" || (selectedMajor === "Other" && otherMajor.trim() === "")) {
                                         alert("Please select or enter a major.");
                                         return;
                                     }
                                     await SetMajor();
                                     setShowMajorPrompt(false);
-                                    console.log(`Major selection confirmed: ${otherMajor? otherMajor : selectedMajor}`);
+                                    console.log(`Major selection confirmed: ${otherMajor ? otherMajor : selectedMajor}`);
                                     setSelectedMajor("null"); // Reset selection
                                     setOtherMajor(""); // Reset other major input
                                     await loginButton();
@@ -450,11 +443,10 @@ export default function Home() {
                             )}
                         </form>
                         <button
-                            className={`px-6 py-3 text-white text-lg rounded-md transition ${
-                                validateStudentID(StudentID)
-                                    ? "bg-blue-500 hover:bg-blue-600"
-                                    : "bg-gray-400 cursor-not-allowed"
-                            }`}
+                            className={`px-6 py-3 text-white text-lg rounded-md transition ${validateStudentID(StudentID)
+                                ? "bg-blue-500 hover:bg-blue-600"
+                                : "bg-gray-400 cursor-not-allowed"
+                                }`}
                             onClick={() => loginButton()}
                             disabled={!validateStudentID(StudentID)}
                         >
@@ -472,7 +464,6 @@ export default function Home() {
                     <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
                     <div className="w-full max-h-[500px] overflow-y-auto space-y-4 pr-2">
                         {loggedInStudents
-                            .filter((student) => student.Logged_In)
                             .map((student) => {
                                 const studentImagePath = `/photos/${student.StudentID}.png`;
                                 return (
