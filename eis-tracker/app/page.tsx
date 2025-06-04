@@ -204,10 +204,14 @@ export default function Home() {
             }
         };
 
+        // Add interval to retrieve logged-in students every 10 seconds
+        const interval = setInterval(fetchStudents, 10000);
+
         document.addEventListener('keydown', handleKeyPress);
 
         return () => {
             document.removeEventListener('keydown', handleKeyPress);
+            clearInterval(interval); // Clear interval on unmount
         };
     }, []);
 
