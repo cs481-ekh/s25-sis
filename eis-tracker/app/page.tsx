@@ -30,6 +30,12 @@ export default function Home() {
     const [selectedMajor, setSelectedMajor] = useState<string>("null");
     const [otherMajor, setOtherMajor] = useState<string>("");
 
+    //new user states
+    const [newUser, setNewUser] = useState(false);
+    const [First_Name, setFirstName] = useState("");
+    const [Last_Name, setLastName] = useState("");
+    const [newUserConfirmed, setNewUserConfirmed] = useState(false);
+
     // Path to default student image
     const imagePath = `/s25-sis/blankimage.png`;
 
@@ -138,7 +144,7 @@ export default function Home() {
                     // Notify of successful login
                     const d = new Date().toLocaleString("en-US");
                     setNotification(`${StudentID} logged in at ${d}`);
-                    setTimeout(() => setNotification(""), 6000);                    
+                    setTimeout(() => setNotification(""), 6000);
                 } else {
                     console.error("Failed to insert log");
                 }
@@ -157,7 +163,7 @@ export default function Home() {
                 if (res.ok) {
                     const data = await res.json();
                     console.log("Completed log:", data.log);
-                    
+
                     //notify of successful logout
                     const d = new Date().toLocaleString("en-US");
                     setNotification(`${StudentID} logged out at ${d}`);
@@ -165,7 +171,7 @@ export default function Home() {
                 } else {
                     console.error("Failed to finish log");
                 }
-            }             
+            }
         } else {
             //Student does not exist, create new user
             console.error("Failed to fetch logged-in students");
@@ -386,6 +392,69 @@ export default function Home() {
                                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
                             >
                                 Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {newUser && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">New User Registration</h2>
+                        <p className="mb-4">Please enter your details to register:</p>
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault(); // Prevent default form submission
+                                if (First_Name.trim() === "" || Last_Name.trim() === "") {
+                                    alert("Please fill in both first and last names.");
+                                    return;
+                                }
+                                setNewUser(false); // Hide new user form
+                                setNewUserConfirmed(true); // Set new user confirmed state
+                                resisterUser(); // Call the register function
+                            }}
+                            className="flex flex-col space-y-4">
+                            <input
+                                type="text"
+                                placeholder="First Name"
+                                value={First_Name}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required></input>
+                            <input
+                                type="text"
+                                placeholder="Last Name"
+                                value={Last_Name}
+                                onChange={(e) => setLastName(e.target.value)}
+                                className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required></input>
+                        </form>
+                        <div className="flex justify-end gap-4">
+                            <button
+                                onClick={() => {
+                                    if (First_Name.trim() === "" || Last_Name.trim() === "") {
+                                        alert("Please fill in both first and last names.");
+                                        return;
+                                    }
+                                    setNewUser(false); // Hide new user form
+                                    setNewUserConfirmed(true); // Set new user confirmed state
+                                    resisterUser(); // Call the register function
+                                }}
+                                className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
+                            >
+                                Confirm
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setNewUser(false);
+                                    setFirstName("");
+                                    setLastName("");
+                                    setStudentID(""); // Reset StudentID
+                                }}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>
