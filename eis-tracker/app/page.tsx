@@ -36,6 +36,38 @@ export default function Home() {
     const [Last_Name, setLastName] = useState("");
     const [newUserConfirmed, setNewUserConfirmed] = useState(false);
 
+    // Function to register a new user
+    const resisterUser = async () => {
+        if (!validateStudentID(StudentID)) {
+            setIdError("Student ID must be exactly 9 digits (0-9)");
+            return;
+        }
+        setIdError("");
+
+        const res = await fetch(`${baseApiUrl}db`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                StudentID,
+                First_Name,
+                Last_Name,
+                mode: "register"
+            }),
+        });
+
+        if (res.ok) {
+            console.log("New user registered successfully");
+            setNewUserConfirmed(true);
+            setNewUser(false); // Hide new user form
+        } else {
+            console.error("Failed to insert user");
+            setNewUserConfirmed(false);
+            setNewUser(false); // Hide new user form
+        }
+    };
+
     // Path to default student image
     const imagePath = `/s25-sis/blankimage.png`;
 
@@ -174,7 +206,11 @@ export default function Home() {
             }
         } else {
             //Student does not exist, create new user
-            console.error("Failed to fetch logged-in students");
+            console.log("Student does not exist, creating new user");
+            setNewUser(true); // Show new user registration form
+            setFirstName(""); // Reset first name input
+            setLastName(""); // Reset last name input
+            return;
         }
 
         // Reset student ID input and fetch updated students
@@ -198,28 +234,46 @@ export default function Home() {
                 console.error("Error creating database:", error);
             }
         }
-
         // Initialize database on mount
         createTable();
-
-        // Handle key press to focus on input field
-        const handleKeyPress = () => {
-            const inputElement = document.querySelector<HTMLInputElement>('input[type="text"]');
-            if (inputElement && document.activeElement !== inputElement) {
-                inputElement.focus();
-            }
-        };
-
         // Add interval to retrieve logged-in students every 10 seconds
         const interval = setInterval(fetchStudents, 10000);
+        return () => {
+            clearInterval(interval); // Clear interval on unmount
+        };
+    }, []);
+
+    useEffect(() => {
+        // Handle key press to focus on input field
+        const handleKeyPress = () => {
+            if (!newUser && !showMajorPrompt && !showSupervisorPrompt) {
+                const inputElement = document.querySelector<HTMLInputElement>('input[id="idInput"]');
+                if( inputElement) {
+                    inputElement.focus();
+                }
+            } else if (newUser) {
+                const firstNameInput = document.querySelector<HTMLInputElement>('input[id="firstNameInput"]');
+                const lastNameInput = document.querySelector<HTMLInputElement>('input[id="lastNameInput"]');
+                if (firstNameInput && document.activeElement !== firstNameInput && document.activeElement !== lastNameInput) {
+                    firstNameInput.focus();
+                }
+            } else if (showMajorPrompt && selectedMajor === "Other") {
+                // Focus on the other major input if "Other" is selected
+                const otherMajorInput = document.querySelector<HTMLInputElement>('input[id="otherMajorInput"]');
+                if(otherMajorInput && document.activeElement !== otherMajorInput) {
+                    otherMajorInput.focus();
+                }
+            }
+        };
 
         document.addEventListener('keydown', handleKeyPress);
 
         return () => {
             document.removeEventListener('keydown', handleKeyPress);
-            clearInterval(interval); // Clear interval on unmount
-        };
-    }, []);
+        }
+
+    }, [newUser, showMajorPrompt, showSupervisorPrompt, selectedMajor]);
+
 
 
     useEffect(() => {
@@ -371,6 +425,8 @@ export default function Home() {
                             {selectedMajor === "Other" && (
                                 <input
                                     type="text"
+                                    id="otherMajorInput"
+                                    name="otherMajorInput"
                                     placeholder="Enter your major"
                                     className="w-full p-3 mt-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     onChange={(e) => setOtherMajor(e.target.value)}
@@ -402,6 +458,7 @@ export default function Home() {
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                         <h2 className="text-xl font-bold mb-4">New User Registration</h2>
+                        <h3 className="text-lg mb-2">Student ID: {StudentID}</h3>
                         <p className="mb-4">Please enter your details to register:</p>
                         <form
                             onSubmit={(e) => {
@@ -411,13 +468,14 @@ export default function Home() {
                                     return;
                                 }
                                 setNewUser(false); // Hide new user form
-                                setNewUserConfirmed(true); // Set new user confirmed state
                                 resisterUser(); // Call the register function
                             }}
                             className="flex flex-col space-y-4">
                             <input
                                 type="text"
                                 placeholder="First Name"
+                                id="firstNameInput"
+                                name="firstNameInput"
                                 value={First_Name}
                                 onChange={(e) => setFirstName(e.target.value)}
                                 className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -425,26 +483,15 @@ export default function Home() {
                             <input
                                 type="text"
                                 placeholder="Last Name"
+                                id="lastNameInput"
+                                name="lastNameInput"
                                 value={Last_Name}
                                 onChange={(e) => setLastName(e.target.value)}
                                 className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 required></input>
+                            <button type="submit" style={{ display: "none" }} aria-hidden="true" tabIndex={-1}></button>
                         </form>
                         <div className="flex justify-end gap-4">
-                            <button
-                                onClick={() => {
-                                    if (First_Name.trim() === "" || Last_Name.trim() === "") {
-                                        alert("Please fill in both first and last names.");
-                                        return;
-                                    }
-                                    setNewUser(false); // Hide new user form
-                                    setNewUserConfirmed(true); // Set new user confirmed state
-                                    resisterUser(); // Call the register function
-                                }}
-                                className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
-                            >
-                                Confirm
-                            </button>
                             <button
                                 onClick={() => {
                                     setNewUser(false);
@@ -452,10 +499,45 @@ export default function Home() {
                                     setLastName("");
                                     setStudentID(""); // Reset StudentID
                                 }}
-                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
                             >
                                 Cancel
                             </button>
+                            <button
+                                onClick={() => {
+                                    if (First_Name.trim() === "" || Last_Name.trim() === "") {
+                                        alert("Please fill in both first and last names.");
+                                        return;
+                                    }
+                                    setNewUser(false); // Hide new user form
+                                    resisterUser(); // Call the register function
+                                }}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {newUserConfirmed && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">Registration Successful</h2>
+                        <p className="mb-4">You have been successfully registered!</p>
+                        <p className="mb-4">You can now log in with your Student ID.</p>
+                        <p className="mb-4">Speak to a Supervisor about getting your white tag!</p>
+                        <div className="flex justify-end gap-4">
+                            <button
+                                onClick={() => {
+                                    setNewUserConfirmed(false);
+                                    setStudentID(""); // Reset StudentID
+                                    }}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                Close
+                                </button>
                         </div>
                     </div>
                 </div>
@@ -492,6 +574,8 @@ export default function Home() {
                         >
                             <input
                                 type="text"
+                                id="idInput"
+                                name="idInput"
                                 placeholder="Enter Student ID"
                                 value={StudentID}
                                 onChange={(e) => {
