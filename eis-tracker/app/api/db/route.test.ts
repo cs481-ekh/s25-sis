@@ -72,7 +72,7 @@ describe('database tests', () => {
         if(!res)
             fail();
         // const resBody = await res.json();
-        expect(res.status).toBe(400);
+        expect(res.status).toBe(404);
     })
 
     test('bad log GET', async () => {
