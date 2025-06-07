@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from 'next/image';
 
@@ -49,7 +49,7 @@ export default function Dashboard() {
     };
 
     // Fetch logged-in students from the API
-    const fetchStudents = async () => {
+    const fetchStudents = useCallback(async () => {
         const params = new URLSearchParams({
             database: "database.db",
             mode: "all_logged_in",
@@ -70,7 +70,7 @@ export default function Dashboard() {
         } else {
             console.error('Failed to fetch logged-in students');
         }
-    };
+    }, [baseApiUrl]);
 
     // Auto-update the list every 5 seconds
     useEffect(() => {
