@@ -58,7 +58,6 @@ const extractDataFromBuffer = async (buffer: Buffer): Promise<StudentData[]> => 
 
 // Handle the POST request for file upload and CSV processing
 export async function POST(req: Request) {
-    console.log("📥 Received POST /api/import request");
     const formData = await (req as NextRequest).formData();
     const file = formData.get('file');
 
@@ -77,12 +76,10 @@ export async function POST(req: Request) {
 
     try {
         const data = await extractDataFromBuffer(buffer);
-        console.log("✅ Extracted", data.length, "students from CSV");
 
         const db = new Database('database/database.db');
         db.pragma('journal_mode = WAL');
         db.exec(`CREATE INDEX IF NOT EXISTS idx_student_id ON users(StudentID);`);
-        console.log("📂 Connected to database");
 
         // Fetch all existing users into memory for faster lookup
         const existingUsers = new Map<string, {
@@ -105,12 +102,12 @@ export async function POST(req: Request) {
         let added = 0, skipped = 0, updated = 0;
 
         const insertStmt = db.prepare(`
-    INSERT INTO users (StudentID, First_Name, Last_Name, WhiteTag, BlueTag, GreenTag, OrangeTag)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (StudentID, First_Name, Last_Name, WhiteTag, BlueTag, GreenTag, OrangeTag, Tags)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
         const updateStmt = db.prepare(`
     UPDATE users
-    SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?
+    SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?, Tags = ?
     WHERE StudentID = ?
 `);
 
@@ -129,6 +126,12 @@ export async function POST(req: Request) {
                     const newGreen = student.greenTag ? 1 : 0;
                     const newOrange = student.orangeTag ? 1 : 0;
 
+                    const computedTags =
+                        (newWhite ? 0b0001 : 0) |
+                        (newBlue  ? 0b0010 : 0) |
+                        (newGreen ? 0b0100 : 0) |
+                        (newOrange ? 0b1000 : 0);
+
                     if (!existing) {
                         insertStmt.run(
                             String(student.StudentID).trim(),
@@ -137,7 +140,8 @@ export async function POST(req: Request) {
                             newWhite,
                             newBlue,
                             newGreen,
-                            newOrange
+                            newOrange,
+                            computedTags
                         );
                         existingUsers.set(String(student.StudentID).trim(), {
                             WhiteTag: newWhite,
@@ -158,6 +162,7 @@ export async function POST(req: Request) {
                             newBlue,
                             newGreen,
                             newOrange,
+                            computedTags,
                             student.StudentID
                         );
                         updated++;
@@ -180,8 +185,6 @@ export async function POST(req: Request) {
         }
 
         db.close();
-        console.log("🛑 Closed database connection");
-        console.log(`📊 Import Summary — Added: ${added}, Updated: ${updated}, Skipped: ${skipped}`);
 
         return new NextResponse(JSON.stringify({ message: 'Import complete', added, updated, skipped }), { status: 200 });
 

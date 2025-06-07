@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from 'next/image';
 
 export default function Home() {
     const [StudentID, setStudentID] = useState("");
@@ -58,7 +59,6 @@ export default function Home() {
         });
 
         if (res.ok) {
-            console.log("New user registered successfully");
             setNewUserConfirmed(true);
             setNewUser(false); // Hide new user form
         } else {
@@ -78,9 +78,11 @@ export default function Home() {
     interface Student {
         StudentID: string;
         First_Name: string;
+        Last_Name: string;
         Tags: number;
         Logged_In: boolean;
         TotalHours: number;
+        PhotoBase64?: string;
     }
 
     const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
@@ -92,7 +94,7 @@ export default function Home() {
     };
 
     // Function for fetching students from db
-    async function fetchStudents() {
+    const fetchStudents = useCallback(async () => {
         const params = new URLSearchParams({
             database: "database.db",
             mode: "all_logged_in",
@@ -106,11 +108,16 @@ export default function Home() {
         });
         if (res.ok) {
             const data = await res.json();
-            setLoggedInStudents(data.users || []);
+            const combined = [
+                ...(data.admins || []),
+                ...(data.supervisors || []),
+                ...(data.students || []),
+            ];
+            setLoggedInStudents(combined);
         } else {
             console.error('Failed to fetch logged-in students');
         }
-    }
+    }, [baseApiUrl]);
 
     const loginButton = async () => {
         if (!validateStudentID(StudentID)) {
@@ -170,9 +177,6 @@ export default function Home() {
                 });
 
                 if (res.ok) {
-                    const data = await res.json();
-                    console.log("New log:", data.log);
-
                     // Notify of successful login
                     const d = new Date().toLocaleString("en-US");
                     setNotification(`${StudentID} logged in at ${d}`);
@@ -193,9 +197,6 @@ export default function Home() {
                 });
 
                 if (res.ok) {
-                    const data = await res.json();
-                    console.log("Completed log:", data.log);
-
                     //notify of successful logout
                     const d = new Date().toLocaleString("en-US");
                     setNotification(`${StudentID} logged out at ${d}`);
@@ -206,7 +207,6 @@ export default function Home() {
             }
         } else {
             //Student does not exist, create new user
-            console.log("Student does not exist, creating new user");
             setNewUser(true); // Show new user registration form
             setFirstName(""); // Reset first name input
             setLastName(""); // Reset last name input
@@ -224,7 +224,6 @@ export default function Home() {
             try {
                 const res = await fetch(`${baseApiUrl}db`, { method: "GET" });
                 if (res.ok) {
-                    // const data = await res.json();
                     //console.log("Database initialized:", data);
                     await fetchStudents(); // Fetch users after database creation
                 } else {
@@ -241,7 +240,7 @@ export default function Home() {
         return () => {
             clearInterval(interval); // Clear interval on unmount
         };
-    }, []);
+    }, [baseApiUrl, fetchStudents]);
 
     useEffect(() => {
         // Handle key press to focus on input field
@@ -352,7 +351,6 @@ export default function Home() {
         });
 
         if (res.ok) {
-            console.log("Updated Major");
         } else {
             console.error("Failed to insert user");
         }
@@ -440,7 +438,6 @@ export default function Home() {
                                     }
                                     await SetMajor();
                                     setShowMajorPrompt(false);
-                                    console.log(`Major selection confirmed: ${otherMajor ? otherMajor : selectedMajor}`);
                                     setSelectedMajor("null"); // Reset selection
                                     setOtherMajor(""); // Reset other major input
                                     await loginButton();
@@ -545,10 +542,12 @@ export default function Home() {
 
             {/* Navigation Bar */}
             <nav className="bg-blue-500 p-4 flex items-center">
-                <img
+                <Image
                     src="/s25-sis/logo.png"
                     alt="EIS Logo"
-                    className="h-8 mr-4"
+                    width={40}
+                    height={40}
+                    className="h-8 w-auto mr-4"
                 />
                 <div className="flex items-center justify-between w-full">
                     <h1 className="text-white text-2xl font-bold">EIS Dashboard</h1>
@@ -616,33 +615,53 @@ export default function Home() {
                 <div className="w-2/5 flex flex-col items-center justify-center p-8 sm:p-20 bg-white border-l">
                     <h2 className="text-2xl font-bold mb-4">Currently Logged In</h2>
                     <div className="w-full max-h-[500px] overflow-y-auto space-y-4 pr-2">
-                        {loggedInStudents
+                        {[...loggedInStudents]
+                            .sort((a, b) => {
+                                const rank = (s: Student) =>
+                                    (s.Tags & 0b10000) !== 0 ? 2 : (s.Tags & 0b100000) !== 0 ? 1 : 0;
+                                const rA = rank(a);
+                                const rB = rank(b);
+                                if (rA !== rB) return rB - rA;
+                                return a.First_Name.localeCompare(b.First_Name);
+                            })
                             .map((student) => {
-                                const studentImagePath = `/photos/${student.StudentID}.png`;
-                                return (
-                                    <li
-                                        key={student.StudentID}
-                                        className="flex items-center space-x-4 border p-4 rounded-lg shadow-md"
-                                    >
-                                        <img
-                                            src={studentImagePath}
-                                            alt={`${student.First_Name}'s profile`}
-                                            className="w-12 h-12 rounded-full border object-cover"
-                                            onError={(e) => {
-                                                e.currentTarget.onerror = null;
-                                                e.currentTarget.src = imagePath;
-                                            }}
-                                        />
-                                        <div>
-                                            <strong>First Name:</strong> {student.First_Name}
+                                const isAdmin = (student.Tags & 0b10000) !== 0;
+                                const isSupervisor = (student.Tags & 0b100000) !== 0;
+
+                            let borderColor = "border-gray-300";
+                            if (isAdmin) borderColor = "border-purple-600";
+                            else if (isSupervisor) borderColor = "border-yellow-500";
+
+                            return (
+                                <li
+                                    key={student.StudentID}
+                                    className={`flex items-center space-x-4 border ${borderColor} p-4 rounded-lg shadow-md`}
+                                >
+                                    <Image
+                                        src={
+                                            student.PhotoBase64
+                                                ? `data:image/jpeg;base64,${student.PhotoBase64}`
+                                                : imagePath
+                                        }
+                                        alt={`${student.First_Name}'s profile`}
+                                        width={48}
+                                        height={48}
+                                        className={`w-12 h-12 rounded-full object-cover border-4 ${
+                                            isAdmin ? "border-purple-600" : isSupervisor ? "border-yellow-500" : "border-gray-300"
+                                        }`}
+                                    />
+                                    <div className="flex flex-col justify-center">
+                                        <div className="font-semibold text-lg">
+                                            {student.First_Name} {student.Last_Name}
                                         </div>
-                                        <div>
-                                            <strong>Tags:</strong>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-sm">Tags:</span>
                                             {renderTags(student.Tags)}
                                         </div>
-                                    </li>
-                                );
-                            })}
+                                    </div>
+                                </li>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
