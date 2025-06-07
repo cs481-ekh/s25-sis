@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from 'next/image';
 
 interface Student {
     StudentID: string;
@@ -91,7 +92,7 @@ export default function Dashboard() {
                 return(
                     <div key={student.StudentID}
                          className={`flex flex-col items-center p-8 rounded bg-gray-50 transition-transform duration-300 hover:scale-105 ${borderColor}`}>
-                        <img
+                        <Image
                             src={student.PhotoBase64
                                 ? `data:image/jpeg;base64,${student.PhotoBase64}`
                                 : imagePath}
@@ -119,7 +120,7 @@ export default function Dashboard() {
     return (
         <div className="flex min-h-screen flex-col">
             <nav className="bg-blue-500 p-4 flex items-center">
-                <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" />
+                <Image src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" />
                 <div className="flex items-center justify-between w-full">
                     <h1 className="text-white text-2xl font-bold">EIS Dashboard</h1>
                     <Link href="/login" className="text-white text-lg hover:underline">Back to Login</Link>

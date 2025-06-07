@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import { parseCookies } from "nookies";
@@ -292,7 +292,7 @@ export default function Page() {
         setStudentID(""); // Clear the StudentID field
     }
 
-    const fetchStudents = async () => {
+    const fetchStudents = useCallback(async () => {
         const params = new URLSearchParams({
             database: "database.db",
             mode: "all_logged_in",
@@ -304,13 +304,14 @@ export default function Page() {
                 "Content-Type": "application/json",
             },
         });
+
         if (res.ok) {
             const data = await res.json();
             setLoggedInStudents(data.users || []);
         } else {
-            console.error('Failed to fetch logged-in students');
+            console.error("Failed to fetch logged-in students");
         }
-    };
+    }, [baseApiUrl]);
 
     const handleLogout = async (studentID: string, studentName: string) => {
         const confirmLogout = window.confirm(`Are you sure you want to log out ${studentName}?`);
@@ -493,9 +494,7 @@ export default function Page() {
 
         createTable();
         fetchData();
-    }, []); // ✅ Prevents infinite re-renders
-
-
+    }, [baseApiUrl]);
 
     const openRegister = () => {
         if (!StudentID) return alert("Enter a Student ID first!");
@@ -563,9 +562,7 @@ export default function Page() {
 
     useEffect(() => {
         if (viewStudents) {
-            (async () => {
-                await fetchStudents();
-            })();
+            fetchStudents();
         }
     }, [viewStudents, fetchStudents]);
 
