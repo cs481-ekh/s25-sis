@@ -12,7 +12,7 @@ import bcrypt from 'bcrypt';
 type UserWithPhoto = {
   Photo: Buffer | null;
   PhotoBase64?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 
@@ -166,12 +166,12 @@ export async function GET(request: Request) {
         const ADMIN_TAG = 0b10000;
 
         const admins = allUsers.filter(u =>
-            (u.Tags & ADMIN_TAG) !== 0
+            ((u.Tags as number) & ADMIN_TAG) !== 0
         );
 
         const supervisors = allUsers.filter(u =>
             u.StudentID !== "999999999" &&
-            (u.Tags & 0b100000) !== 0 &&
+            ((u.Tags as number) & 0b100000) !== 0 &&
             supervisingNowStmt.get(u.StudentID)
         );
 
@@ -264,9 +264,10 @@ export async function GET(request: Request) {
         const ADMIN_TAG = 0b10000;
         const SUPERVISOR_TAG = 0b100000;
 
-        const admins = users.filter(u => (u.Tags & ADMIN_TAG) !== 0);
+        const admins = users.filter(u => ((u.Tags as number) & ADMIN_TAG) !== 0);
         const supervisors = users.filter(u =>
-            (u.Tags & SUPERVISOR_TAG) !== 0 && (u.Tags & ADMIN_TAG) === 0
+            ((u.Tags as number) & SUPERVISOR_TAG) !== 0 &&
+            ((u.Tags as number) & ADMIN_TAG) === 0
         );
 
         const adminIDs = new Set(admins.map(u => u.StudentID));

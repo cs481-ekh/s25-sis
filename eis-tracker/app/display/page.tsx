@@ -77,7 +77,7 @@ export default function Dashboard() {
         fetchStudents();
         const interval = setInterval(fetchStudents, 5000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchStudents]);
 
     const renderCards = (list: Student[]) =>
         list

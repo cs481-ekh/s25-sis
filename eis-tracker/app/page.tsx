@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
@@ -94,7 +94,7 @@ export default function Home() {
     };
 
     // Function for fetching students from db
-    async function fetchStudents() {
+    const fetchStudents = useCallback(async () => {
         const params = new URLSearchParams({
             database: "database.db",
             mode: "all_logged_in",
@@ -117,7 +117,7 @@ export default function Home() {
         } else {
             console.error('Failed to fetch logged-in students');
         }
-    }
+    }, [baseApiUrl]);
 
     const loginButton = async () => {
         if (!validateStudentID(StudentID)) {
@@ -177,8 +177,6 @@ export default function Home() {
                 });
 
                 if (res.ok) {
-                    const data = await res.json();
-
                     // Notify of successful login
                     const d = new Date().toLocaleString("en-US");
                     setNotification(`${StudentID} logged in at ${d}`);
@@ -199,8 +197,6 @@ export default function Home() {
                 });
 
                 if (res.ok) {
-                    const data = await res.json();
-
                     //notify of successful logout
                     const d = new Date().toLocaleString("en-US");
                     setNotification(`${StudentID} logged out at ${d}`);
@@ -244,7 +240,7 @@ export default function Home() {
         return () => {
             clearInterval(interval); // Clear interval on unmount
         };
-    }, []);
+    }, [baseApiUrl, fetchStudents]);
 
     useEffect(() => {
         // Handle key press to focus on input field
