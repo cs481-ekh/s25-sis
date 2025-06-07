@@ -6,14 +6,17 @@ import Link from "next/link";
 interface Student {
     StudentID: string;
     First_Name: string;
+    Last_Name: string;
     Tags: number;
     Logged_In: boolean;
     TotalHours?: number;
+    PhotoBase64?: string;
 }
 
 export default function Dashboard() {
-    const [loggedInStudents, setLoggedInStudents] = useState<Student[]>([]);
+    const [admins, setAdmins] = useState<Student[]>([]);
     const [supervisors, setSupervisors] = useState<Student[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
 
     const imagePath = `/s25-sis/blankimage.png`;
     const baseApiUrl = process.env.API_URL_ROOT ?? "/s25-sis/api/";
@@ -44,30 +47,6 @@ export default function Dashboard() {
         return <div className="flex">{tagElements}</div>;
     };
 
-    const checkSupervisor = async (id: string) => {
-        const params = new URLSearchParams({
-            database: "database.db",
-            mode: "recent_log",
-            StudentID: id,
-        });
-
-        const tagRes = await fetch(`${baseApiUrl}db?${params.toString()}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
-        if (!tagRes.ok) {
-            console.error('Failed to fetch supervisor data');
-            return;
-        }
-        const data = await tagRes.json();
-
-        console.log("recent_log response for student", id, ":", data);
-
-        return parseInt(data.log.Supervising) === 1;
-    }
-
     // Fetch logged-in students from the API
     const fetchStudents = async () => {
         const params = new URLSearchParams({
@@ -81,9 +60,12 @@ export default function Dashboard() {
                 "Content-Type": "application/json",
             },
         });
+
         if (res.ok) {
             const data = await res.json();
-            setLoggedInStudents(data.users || []);
+            setAdmins(data.admins || []);
+            setSupervisors(data.supervisors || []);
+            setStudents(data.students || []);
         } else {
             console.error('Failed to fetch logged-in students');
         }
@@ -96,52 +78,42 @@ export default function Dashboard() {
         return () => clearInterval(interval);
     }, []);
 
-
-    useEffect(() => {
-        const fetchSupervisors = async () => {
-            const supervisorList = await Promise.all(
-                loggedInStudents.map(async (student) => {
-                    const isSupervisor = await checkSupervisor(student.StudentID);
-                    return isSupervisor ? student : null;
-                })
-            );
-            setSupervisors(supervisorList.filter(Boolean) as Student[]);
-        };
-
-        fetchSupervisors();
-    }, [loggedInStudents]);
-
-    const students = loggedInStudents.filter(
-        student => !supervisors.some(supervisor => supervisor.StudentID === student.StudentID)
-    );
-
     const renderCards = (list: Student[]) =>
         list
             .sort((a, b) => a.First_Name.localeCompare(b.First_Name))
             .map(student => {
-                const tags = student.Tags;
-                console.log(`StudentID: ${student.StudentID}, Name: ${student.First_Name}, Tags (decimal): ${tags}, Tags (binary): ${tags.toString(2)}`
-                );
+                const isAdmin = (student.Tags & 0b10000) !== 0;
+                const isSupervisor = (student.Tags & 0b100000) !== 0;
+
+                let borderColor = "border border-gray-300 shadow-sm";
+                if (isAdmin) borderColor = "border border-purple-500 shadow-purple-300";
+                else if (isSupervisor) borderColor = "border border-yellow-400 shadow-yellow-300";
                 return(
-                <div key={student.StudentID}
-                     className="flex flex-col items-center border p-8 rounded shadow-md bg-gray-50 transition-transform duration-300 hover:scale-105">
-                    <img
-                        src={`/s25-sis/photos/${student.StudentID}.jpg`}
-                        alt="Profile image"
-                        className="w-20 h-20 rounded-full object-cover"
-                        onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = imagePath;
-                        }}
-                    />
-                    <div className="text-center mt-4">
-                        <div className="text-xl font-bold">{student.First_Name}</div>
-                        <div className="mt-2 scale-125">{renderTags(student.Tags)}</div>
-                        <div className="text-sm text-gray-600 mt-2">
-                            <strong>Hours:</strong> {student.TotalHours ?? "0.00"}
+                    <div key={student.StudentID}
+                         className={`flex flex-col items-center p-8 rounded bg-gray-50 transition-transform duration-300 hover:scale-105 ${borderColor}`}>
+                        <img
+                            src={student.PhotoBase64
+                                ? `data:image/jpeg;base64,${student.PhotoBase64}`
+                                : imagePath}
+                            alt="Profile image"
+                            className={`w-20 h-20 rounded-full object-cover border-4 ${
+                                isAdmin ? "border-purple-500" : isSupervisor ? "border-yellow-400" : "border-gray-300"
+                            }`}
+                        />
+                        <div className="flex flex-col items-center text-center mt-4 space-y-1">
+                            <div className="text-xl font-bold">{student.First_Name} {student.Last_Name}</div>
+                            {student.StudentID === "999999999" && (
+                                <div className="text-xs font-semibold text-purple-600">Admin</div>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-gray-700">Tags:</span>
+                                {renderTags(student.Tags)}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                                <strong>Hours:</strong> {student.TotalHours ?? "0.00"}
+                            </div>
                         </div>
                     </div>
-                </div>
                 )});
 
     return (
@@ -154,18 +126,23 @@ export default function Dashboard() {
                 </div>
             </nav>
             <div className="flex flex-col items-center p-5 bg-white min-h-screen space-y-12">
-                <div className="w-full max-w-[90vw]">
-                    <h2 className="text-2xl font-bold mb-4 text-center">Current Supervisors</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-6">
-                        {renderCards(supervisors)}
+                {(admins.length > 0 || supervisors.length > 0) && (
+                    <div className="w-full max-w-[90vw]">
+                        <h2 className="text-2xl font-bold mb-4 text-center">Supervisors</h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-6">
+                            {renderCards([...admins, ...supervisors])}
+                        </div>
                     </div>
-                </div>
-                <div className="w-full max-w-[90vw]">
-                    <h2 className="text-2xl font-bold mb-4 text-center">Currently Logged In Students</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-6">
-                        {renderCards(students)}
+                )}
+
+                {students.length > 0 && (
+                    <div className="w-full max-w-[90vw]">
+                        <h2 className="text-2xl font-bold mb-4 text-center">Students</h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-6">
+                            {renderCards(students)}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

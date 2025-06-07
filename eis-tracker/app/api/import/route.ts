@@ -105,12 +105,12 @@ export async function POST(req: Request) {
         let added = 0, skipped = 0, updated = 0;
 
         const insertStmt = db.prepare(`
-    INSERT INTO users (StudentID, First_Name, Last_Name, WhiteTag, BlueTag, GreenTag, OrangeTag)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (StudentID, First_Name, Last_Name, WhiteTag, BlueTag, GreenTag, OrangeTag, Tags)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
         const updateStmt = db.prepare(`
     UPDATE users
-    SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?
+    SET WhiteTag = ?, BlueTag = ?, GreenTag = ?, OrangeTag = ?, Tags = ?
     WHERE StudentID = ?
 `);
 
@@ -129,6 +129,12 @@ export async function POST(req: Request) {
                     const newGreen = student.greenTag ? 1 : 0;
                     const newOrange = student.orangeTag ? 1 : 0;
 
+                    const computedTags =
+                        (newWhite ? 0b0001 : 0) |
+                        (newBlue  ? 0b0010 : 0) |
+                        (newGreen ? 0b0100 : 0) |
+                        (newOrange ? 0b1000 : 0);
+
                     if (!existing) {
                         insertStmt.run(
                             String(student.StudentID).trim(),
@@ -137,7 +143,8 @@ export async function POST(req: Request) {
                             newWhite,
                             newBlue,
                             newGreen,
-                            newOrange
+                            newOrange,
+                            computedTags
                         );
                         existingUsers.set(String(student.StudentID).trim(), {
                             WhiteTag: newWhite,
@@ -158,6 +165,7 @@ export async function POST(req: Request) {
                             newBlue,
                             newGreen,
                             newOrange,
+                            computedTags,
                             student.StudentID
                         );
                         updated++;

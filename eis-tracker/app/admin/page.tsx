@@ -12,6 +12,7 @@ interface Student {
     Tags: number;
     Logged_In: boolean;
     TotalHours?: number;
+    PhotoBase64?: string;
 }
 
 
@@ -54,21 +55,26 @@ export default function Page() {
             mode: "search",
             search: searchQuery,
         });
+
         const res = await fetch(`${baseApiUrl}db?${params.toString()}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
             },
         });
+
         if (res.ok) {
             const data = await res.json();
-            const users = data.users || [];
-
-            setSearchResults(users);
+            const allUsers = [
+                ...(data.admins || []),
+                ...(data.supervisors || []),
+                ...(data.students || [])
+            ];
+            setSearchResults(allUsers);
         } else {
             console.error('Failed to fetch search results');
         }
-    }
+    };
 
     const [currentPage, setCurrentPage] = useState(1);
     const [studentsPerPage, setStudentsPerPage] = useState(10);
@@ -166,18 +172,21 @@ export default function Page() {
                                         }}
                                     >
                                         <img
-                                            src={`/photos/${student.StudentID}.png`}
+                                            src={
+                                                student.PhotoBase64
+                                                    ? `data:image/jpeg;base64,${student.PhotoBase64}`
+                                                    : imagePath
+                                            }
                                             alt="Profile image"
                                             className="w-20 h-20 rounded-full object-cover"
-                                            onError={(e) => {
-                                                e.currentTarget.onerror = null;
-                                                e.currentTarget.src = imagePath;
-                                            }}
                                         />
-                                        <div className="text-center mt-4">
+                                        <div className="flex flex-col items-center text-center space-y-1 mt-4">
                                             <div className="text-xl font-bold">{`${student.First_Name} ${student.Last_Name}`}</div>
-                                            <div className="mt-2">{renderTags(Number(student.Tags))}</div>
-                                            <div className="text-sm text-gray-600 mt-1">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span className="text-sm font-semibold text-gray-700">Tags:</span>
+                                                {renderTags(student.Tags)}
+                                            </div>
+                                            <div className="text-sm text-gray-600">
                                                 <strong>Hours:</strong> {student.TotalHours?.toFixed(2) ?? "0.00"}
                                             </div>
                                         </div>
@@ -235,7 +244,6 @@ export default function Page() {
 
             if (res.ok) {
                 const data = await res.json();
-                console.log('Inserted User:', data.user);
             } else {
                 console.error('Failed to insert user');
             }
@@ -258,7 +266,6 @@ export default function Page() {
         });
 
         if (tagRes.ok) {
-            console.log('Updated Tags To', tags);
             setShowModal(false);
         } else {
             console.error('Failed to update tags');
@@ -274,7 +281,6 @@ export default function Page() {
             });
 
             if (passRes.ok) {
-                console.log('Added Password', tags);
                 setShowModal(false);
             } else {
                 const data = await passRes.json();
@@ -320,7 +326,6 @@ export default function Page() {
 
         if (res.ok) {
             const data = await res.json();
-            console.log("Completed log:", data.log);
         } else {
             console.error("Failed to finish log");
         }
@@ -470,8 +475,6 @@ export default function Page() {
             const res = await fetch(`${baseApiUrl}db`);
             if (res.ok) {
                 // const data = await res.json();
-                //console.log('User Database Content:', data.users); // Logs the users data to the console
-                //console.log('Logs Database Content:', data.logs); // Logs the logs data to the console
             } else {
                 console.error('Failed to fetch data');
             }
@@ -532,13 +535,14 @@ export default function Page() {
             setFirstName(user.First_Name);
             setLastName(user.Last_Name);
 
-            const tags = Number(user.Tags ?? 0);  // Ensure it's a number
-            setWhite((tags & 0b1) !== 0);
-            setBlue((tags & 0b10) !== 0);
-            setGreen((tags & 0b100) !== 0);
-            setOrange((tags & 0b1000) !== 0);
-            setAdmin((tags & 0b10000) !== 0);
-            setSupervisor((tags & 0b100000) !== 0);
+            const tags = Number(user.Tags ?? 0);
+            // Safely fall back to individual tag fields if Tags is 0
+            setWhite((tags & 0b1) !== 0 || user.WhiteTag === 1);
+            setBlue((tags & 0b10) !== 0 || user.BlueTag === 1);
+            setGreen((tags & 0b100) !== 0 || user.GreenTag === 1);
+            setOrange((tags & 0b1000) !== 0 || user.OrangeTag === 1);
+            setAdmin((tags & 0b10000) !== 0 || user.PurpleTag === 1);
+            setSupervisor((tags & 0b100000) !== 0 || user.SupervisorTag === 1);
 
             setFormMode('update');
             setShowModal(true);
