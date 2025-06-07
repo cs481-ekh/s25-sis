@@ -43,11 +43,8 @@ export async function POST(req: Request) {
             const checkStmt = db.prepare('SELECT 1 FROM users WHERE StudentID = ?');
             for (const entry of entries) {
                 if (entry.isDirectory) {
-                    console.log(`Skipping directory: ${entry.entryName}`);
                     continue;
                 }
-
-                console.log(`Processing file: ${entry.entryName}`);
 
                 const match = entry.entryName.match(/^(\d+)\.(jpg|jpeg|png)$/i);
                 if (!match) {
@@ -60,11 +57,9 @@ export async function POST(req: Request) {
 
                 const exists = checkStmt.get(studentId);
                 if (!exists) {
-                    console.log(`StudentID ${studentId} not found in DB — skipping.`);
                     continue;
                 }
 
-                console.log(`Inserting image for StudentID ${studentId}`);
                 stmt.run(imageData, studentId);
                 inserted.push(studentId);
             }

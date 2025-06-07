@@ -97,6 +97,8 @@ export default function Dashboard() {
                                 ? `data:image/jpeg;base64,${student.PhotoBase64}`
                                 : imagePath}
                             alt="Profile image"
+                            width={80}
+                            height={80}
                             className={`w-20 h-20 rounded-full object-cover border-4 ${
                                 isAdmin ? "border-purple-500" : isSupervisor ? "border-yellow-400" : "border-gray-300"
                             }`}
@@ -120,7 +122,13 @@ export default function Dashboard() {
     return (
         <div className="flex min-h-screen flex-col">
             <nav className="bg-blue-500 p-4 flex items-center">
-                <Image src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" />
+                <Image
+                    src="/s25-sis/logo.png"
+                    alt="EIS Logo"
+                    width={40}
+                    height={40}
+                    className="h-8 w-auto mr-4"
+                />
                 <div className="flex items-center justify-between w-full">
                     <h1 className="text-white text-2xl font-bold">EIS Dashboard</h1>
                     <Link href="/login" className="text-white text-lg hover:underline">Back to Login</Link>

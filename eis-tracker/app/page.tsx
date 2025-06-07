@@ -351,7 +351,6 @@ export default function Home() {
         });
 
         if (res.ok) {
-            console.log("Updated Major");
         } else {
             console.error("Failed to insert user");
         }
@@ -546,7 +545,9 @@ export default function Home() {
                 <Image
                     src="/s25-sis/logo.png"
                     alt="EIS Logo"
-                    className="h-8 mr-4"
+                    width={40}
+                    height={40}
+                    className="h-8 w-auto mr-4"
                 />
                 <div className="flex items-center justify-between w-full">
                     <h1 className="text-white text-2xl font-bold">EIS Dashboard</h1>
@@ -643,6 +644,8 @@ export default function Home() {
                                                 : imagePath
                                         }
                                         alt={`${student.First_Name}'s profile`}
+                                        width={48}
+                                        height={48}
                                         className={`w-12 h-12 rounded-full object-cover border-4 ${
                                             isAdmin ? "border-purple-600" : isSupervisor ? "border-yellow-500" : "border-gray-300"
                                         }`}

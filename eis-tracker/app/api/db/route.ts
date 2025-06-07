@@ -182,12 +182,6 @@ export async function GET(request: Request) {
             !adminIDs.has(u.StudentID) &&
             !supervisorIDs.has(u.StudentID)
         );
-        console.log("Admin IDs:", Array.from(adminIDs));
-        console.log("Supervisor IDs:", Array.from(supervisorIDs));
-        console.log("All Logged In Students:", allUsers.map(u => u.StudentID));
-        console.log("Admins Returned:", admins.map(u => u.StudentID));
-        console.log("Supervisors Returned:", supervisors.map(u => u.StudentID));
-        console.log("Students Returned:", students.map(u => u.StudentID));
 
         return new Response(JSON.stringify({
             admins: addPhotoBase64(admins),
@@ -284,7 +278,6 @@ export async function GET(request: Request) {
         }), { status: 200 });
     }
   } else {
-    console.log('Creating tables');
     const db = new Database('database/database.db');
 
     // Create a table and insert data

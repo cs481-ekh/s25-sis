@@ -179,6 +179,8 @@ export default function Page() {
                                                     : imagePath
                                             }
                                             alt="Profile image"
+                                            width={80}
+                                            height={80}
                                             className="w-20 h-20 rounded-full object-cover"
                                         />
                                         <div className="flex flex-col items-center text-center space-y-1 mt-4">
@@ -649,7 +651,13 @@ export default function Page() {
             )}
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
-                <Image src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
+                <Image
+                    src="/s25-sis/logo.png"
+                    alt="EIS Logo"
+                    width={40}
+                    height={40}
+                    className="h-8 w-auto mr-4"
+                /> {/* Adjust height and margin */}
 
                 {/* Title and Navigation Link */}
                 <div className="flex items-center justify-between w-full">

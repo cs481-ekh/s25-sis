@@ -58,7 +58,6 @@ const extractDataFromBuffer = async (buffer: Buffer): Promise<StudentData[]> => 
 
 // Handle the POST request for file upload and CSV processing
 export async function POST(req: Request) {
-    console.log("📥 Received POST /api/import request");
     const formData = await (req as NextRequest).formData();
     const file = formData.get('file');
 
@@ -77,12 +76,10 @@ export async function POST(req: Request) {
 
     try {
         const data = await extractDataFromBuffer(buffer);
-        console.log("✅ Extracted", data.length, "students from CSV");
 
         const db = new Database('database/database.db');
         db.pragma('journal_mode = WAL');
         db.exec(`CREATE INDEX IF NOT EXISTS idx_student_id ON users(StudentID);`);
-        console.log("📂 Connected to database");
 
         // Fetch all existing users into memory for faster lookup
         const existingUsers = new Map<string, {
@@ -188,8 +185,6 @@ export async function POST(req: Request) {
         }
 
         db.close();
-        console.log("🛑 Closed database connection");
-        console.log(`📊 Import Summary — Added: ${added}, Updated: ${updated}, Skipped: ${skipped}`);
 
         return new NextResponse(JSON.stringify({ message: 'Import complete', added, updated, skipped }), { status: 200 });
 
