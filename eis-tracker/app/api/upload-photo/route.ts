@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import AdmZip from 'adm-zip';
 
 export async function POST(req: Request) {
@@ -21,45 +19,62 @@ export async function POST(req: Request) {
 
         const fileName = file.name.toLowerCase();
         // write into your public folder
-        const uploadDir = path.join(process.cwd(), 'public', 'photos');
-        const uploadPath = path.join(uploadDir, fileName);
+        //const uploadDir = path.join(process.cwd(), 'public', 'photos');
+        //const uploadPath = path.join(uploadDir, fileName);
 
         // ensure base upload directory
-        await fs.promises.mkdir(uploadDir, { recursive: true });
+        //await fs.promises.mkdir(uploadDir, { recursive: true });
         // save the raw file
         const buffer = await file.arrayBuffer();
-        await fs.promises.writeFile(uploadPath, Buffer.from(buffer));
+        //await fs.promises.writeFile(uploadPath, Buffer.from(buffer));
 
         if (fileName.endsWith('.zip')) {
-            // 1) unzip *into* the photos directory
-            const zip = new AdmZip(uploadPath);
-            zip.extractAllTo(uploadDir, /* overwrite */ true);
+            const inserted: string[] = [];
 
-            // 2) optionally delete the original ZIP
-            await fs.promises.unlink(uploadPath);
+            const zip = new AdmZip(Buffer.from(buffer));
+            const entries = zip.getEntries();
 
-            // 3) count only image files in the photos folder
-            const allFiles = await fs.promises.readdir(uploadDir);
-            const imageFiles = allFiles.filter(f =>
-                /\.(jpe?g|png|gif|bmp|svg)$/i.test(f)
-            );
+            const Database = (await import('better-sqlite3')).default;
+            const db = new Database('database/database.db');
+            const stmt = db.prepare(`UPDATE users
+                                     SET Photo = ?
+                                     WHERE StudentID = ?`);
+
+            const checkStmt = db.prepare('SELECT 1 FROM users WHERE StudentID = ?');
+            for (const entry of entries) {
+                if (entry.isDirectory) {
+                    continue;
+                }
+
+                const match = entry.entryName.match(/^(\d+)\.(jpg|jpeg|png)$/i);
+                if (!match) {
+                    console.log(`Filename did not match pattern: ${entry.entryName}`);
+                    continue;
+                }
+
+                const studentId = match[1];
+                const imageData = entry.getData(); // buffer
+
+                const exists = checkStmt.get(studentId);
+                if (!exists) {
+                    continue;
+                }
+
+                stmt.run(imageData, studentId);
+                inserted.push(studentId);
+            }
+
+            db.close();
 
             return new Response(JSON.stringify({
-                message: `Zip uploaded and unpacked! ${imageFiles.length} images now in photos.`,
+                message: `Photos added to database for ${inserted.length} students.`,
+                inserted
             }), {
                 status: 200,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'}
             });
-        } else {
-            // single image → return its URL
-            const imageUrl = `/s25-sis/photos/${fileName}`;
-            return new Response(JSON.stringify({
-                message: 'Single photo uploaded successfully!',
-                imageUrl
-            }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
-
-    } catch (err) {
+        } catch (err) {
         console.error('Error in upload-photo:', err);
         return new Response(JSON.stringify({
             error: 'Internal Server Error'

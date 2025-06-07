@@ -9,8 +9,7 @@ export async function POST(req: Request) {
 
     const init = await fetch(`${baseApiUrl}db`, { method: "GET" });
     if (init.ok) {
-            const data = await init.json();
-            console.log("Database initialized:", data);
+            await init.json();
         } else {
             console.error("Failed to initialize database");
         }

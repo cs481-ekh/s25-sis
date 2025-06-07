@@ -17,6 +17,7 @@
     "cookie": "^1.0.2",
     "csv-parser": "^3.2.0",
     "formidable": "^3.5.4",
+    "jszip": "^3.10.1",
     "next": "^15.2.3",
     "nookies": "^2.5.2",
     "react": "^19.0.0",
