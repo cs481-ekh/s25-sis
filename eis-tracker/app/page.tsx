@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from 'next/image';
 
 export default function Home() {
     const [StudentID, setStudentID] = useState("");
@@ -227,7 +228,6 @@ export default function Home() {
             try {
                 const res = await fetch(`${baseApiUrl}db`, { method: "GET" });
                 if (res.ok) {
-                    // const data = await res.json();
                     //console.log("Database initialized:", data);
                     await fetchStudents(); // Fetch users after database creation
                 } else {
@@ -547,7 +547,7 @@ export default function Home() {
 
             {/* Navigation Bar */}
             <nav className="bg-blue-500 p-4 flex items-center">
-                <img
+                <Image
                     src="/s25-sis/logo.png"
                     alt="EIS Logo"
                     className="h-8 mr-4"
@@ -640,7 +640,7 @@ export default function Home() {
                                     key={student.StudentID}
                                     className={`flex items-center space-x-4 border ${borderColor} p-4 rounded-lg shadow-md`}
                                 >
-                                    <img
+                                    <Image
                                         src={
                                             student.PhotoBase64
                                                 ? `data:image/jpeg;base64,${student.PhotoBase64}`

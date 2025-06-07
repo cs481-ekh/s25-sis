@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import { parseCookies } from "nookies";
+import Image from 'next/image';
 
 interface Student {
     StudentID: string;
@@ -171,7 +172,7 @@ export default function Page() {
                                             openUpdate(student.StudentID);
                                         }}
                                     >
-                                        <img
+                                        <Image
                                             src={
                                                 student.PhotoBase64
                                                     ? `data:image/jpeg;base64,${student.PhotoBase64}`
@@ -243,7 +244,6 @@ export default function Page() {
             });
 
             if (res.ok) {
-                const data = await res.json();
             } else {
                 console.error('Failed to insert user');
             }
@@ -325,7 +325,6 @@ export default function Page() {
         });
 
         if (res.ok) {
-            const data = await res.json();
         } else {
             console.error("Failed to finish log");
         }
@@ -474,7 +473,6 @@ export default function Page() {
         async function fetchData() {
             const res = await fetch(`${baseApiUrl}db`);
             if (res.ok) {
-                // const data = await res.json();
             } else {
                 console.error('Failed to fetch data');
             }
@@ -484,7 +482,6 @@ export default function Page() {
             try {
                 const res = await fetch(`${baseApiUrl}db`, { method: 'GET' });
                 if (res.ok) {
-                    // const data = await res.json();
                     //console.log('Database initialized:', data);
                 } else {
                     console.error('Failed to initialize database');
@@ -655,7 +652,7 @@ export default function Page() {
             )}
             <nav className="bg-blue-500 p-4 flex items-center">
                 {/* Logo */}
-                <img src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
+                <Image src="/s25-sis/logo.png" alt="EIS Logo" className="h-8 mr-4" /> {/* Adjust height and margin */}
 
                 {/* Title and Navigation Link */}
                 <div className="flex items-center justify-between w-full">

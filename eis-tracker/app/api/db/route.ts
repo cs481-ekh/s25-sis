@@ -489,8 +489,6 @@ export async function POST(request: Request) {
     const blue = (tags & 0b10) ? 1 : 0;
     const green = (tags & 0b100) ? 1 : 0;
     const orange = (tags & 0b1000) ? 1 : 0;
-    const purple = (tags & 0b10000) ? 1 : 0;
-    const supervisor = (tags & 0b100000) ? 1 : 0;
 
     // Update both Tags field AND individual tag columns
     db.prepare(`
